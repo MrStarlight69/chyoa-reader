@@ -10,7 +10,7 @@ const THEMES = [
 const FONTS = { serif: 'Georgia, "Iowan Old Style", "Palatino Linotype", serif', sans: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', humanist: '"Frutiger", "Segoe UI", "Myriad Pro", Candara, "Gill Sans", sans-serif', mono: 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace', dyslexic: 'Verdana, "Atkinson Hyperlegible", Tahoma, sans-serif' };
 const PREFETCH_MAX = 6;
 
-const prefs = Object.assign({ theme: 'frutiger-aero', fs: 19, lw: 68, lh: 1.7, font: 'theme', prefetch: true, follow: false, autosave: true, autolock: 15 }, JSON.parse(localStorage.getItem('cr:prefs') || '{}'));
+const prefs = Object.assign({ theme: 'frutiger-aero', fs: 19, lw: 68, lh: 1.7, font: 'theme', prefetch: true, follow: false, autosave: true, autolock: 15, proxy: '' }, JSON.parse(localStorage.getItem('cr:prefs') || '{}'));
 prefs.theme = localStorage.getItem('cr:theme') || prefs.theme;
 const savePrefs = () => { localStorage.setItem('cr:prefs', JSON.stringify(prefs)); localStorage.setItem('cr:theme', prefs.theme); };
 
@@ -21,6 +21,12 @@ let pos = -1;                 // index into path of the current chapter
 let current = null;
 let prefetchToken = 0;
 let followTimer = null;
+let backend = 'static';   // 'server' when /api/health answers (node server.js); otherwise GitHub Pages
+let backendReady = Promise.resolve('static');
+let preferredProxy = null;
+let nextFetchAt = 0;
+let fetchChain = Promise.resolve();
+const fetchInflight = new Map();
 
 // ---------- utilities ----------
 let toastT;
@@ -28,12 +34,150 @@ function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.cl
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-async function api(url) {
+function absolutize(ch) {
+  const fix = (u) => {
+    if (!u) return u;
+    try { return ChyoaFetch.normalizeUrl(u); }
+    catch { try { return new URL(u, 'https://chyoa.com/').toString(); } catch { return u; } }
+  };
+  ch.url = fix(ch.url);
+  ch.previousUrl = fix(ch.previousUrl);
+  ch.storyUrl = fix(ch.storyUrl);
+  if (ch.authorUrl) ch.authorUrl = fix(ch.authorUrl);
+  ch.choices = (ch.choices || []).map((c) => ({ ...c, url: fix(c.url) }));
+  return ch;
+}
+function enqueueFetch(fn) {
+  const run = fetchChain.then(fn, fn);
+  fetchChain = run.then(() => {}, () => {});
+  return run;
+}
+async function politeGap() {
+  const wait = Math.max(0, nextFetchAt - Date.now());
+  nextFetchAt = Date.now() + wait + ChyoaFetch.MIN_GAP_MS;
+  if (wait > 0) await sleep(wait);
+}
+function orderProxies(list) {
+  if (!preferredProxy) return list;
+  const i = list.findIndex((p) => p.id === preferredProxy);
+  if (i <= 0) return list;
+  return [list[i], ...list.slice(0, i), ...list.slice(i + 1)];
+}
+function finalChapterUrl(headerUrl, packedUrl, requested) {
+  for (const c of [headerUrl, packedUrl]) {
+    if (!c) continue;
+    try {
+      const u = new URL(c, 'https://chyoa.com');
+      if (/^(www\.)?chyoa\.com$/i.test(u.hostname)) return u.toString();
+    } catch { /* ignore a proxy URL we cannot parse */ }
+  }
+  return requested;
+}
+async function fetchStaticNow(url) {
+  const proxies = orderProxies(ChyoaFetch.proxiesFor(prefs.proxy));
+  let last = null;
+  for (const proxy of proxies) {
+    await politeGap();
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const res = await fetch(proxy.build(url), { signal: ctrl.signal, cache: 'no-store', redirect: 'follow', referrerPolicy: 'no-referrer', headers: { Accept: 'text/html,application/xhtml+xml,application/json' } });
+      const raw = await res.text();
+      const packed = ChyoaFetch.payloadFromProxy(raw);
+      const kind = ChyoaFetch.classifyBody(packed.body, res.status);
+      if (kind !== 'chapter') {
+        const why = kind === 'challenge' ? `${proxy.id} got Cloudflare's challenge page`
+          : kind === 'rate' ? `${proxy.id} rate-limited the request`
+          : `${proxy.id} did not return a CHYOA page (HTTP ${res.status})`;
+        last = Object.assign(new Error(why), { code: 'PROXY' });
+        continue;
+      }
+      let headerFinal = null;
+      try { headerFinal = res.headers.get('X-Final-Url'); } catch { /* some proxies hide headers */ }
+      const finalUrl = finalChapterUrl(headerFinal, packed.finalUrl, url);
+      let data;
+      try { data = absolutize(ChyoaParse.parseChapter(packed.body, finalUrl)); }
+      catch (e) {
+        if (e.code === 'MARKUP_CHANGED' && (res.status === 404 || res.headers.get('X-Upstream-Status') === '404')) {
+          throw Object.assign(new Error('CHYOA returned 404 Not Found for this URL.'), { code: 'NOT_FOUND' });
+        }
+        throw e;
+      }
+      data.fetchedAt = new Date().toISOString();
+      data.requestedUrl = url;
+      data.via = proxy.id;
+      preferredProxy = proxy.id;
+      const note = $('proxyStatus');
+      if (note) note.textContent = proxy.custom ? 'Last fetch used your proxy.' : `Last fetch used the public proxy ${proxy.id}. It can see the chapter URL.`;
+      return data;
+    } catch (e) {
+      if (e.code && e.code !== 'PROXY') throw e;
+      last = Object.assign(new Error(e.name === 'AbortError' ? `${proxy.id} timed out after 20 s` : (e.message || String(e))), { code: 'PROXY' });
+    } finally { clearTimeout(to); }
+  }
+  const lead = prefs.proxy
+    ? 'Your CORS proxy did not return this chapter. Public proxies were not contacted. '
+    : 'Every public CORS proxy failed. ';
+  throw Object.assign(new Error(lead + (last ? last.message + '. ' : '') + 'Save the chapter from your browser (HTML only) and use the HTML button, or set your own proxy in Settings.'), { code: 'PROXY' });
+}
+function fetchStatic(url) {
+  if (fetchInflight.has(url)) return fetchInflight.get(url);
+  const p = enqueueFetch(() => fetchStaticNow(url));
+  fetchInflight.set(url, p);
+  p.finally(() => { if (fetchInflight.get(url) === p) fetchInflight.delete(url); });
+  return p;
+}
+async function apiServer(url) {
   let res;
-  try { res = await fetch(`/api/chapter?url=${encodeURIComponent(url)}`); } catch { throw Object.assign(new Error('The local reader server is not reachable. Is `npm start` still running?'), { code: 'LOCAL' }); }
+  try { res = await fetch(new URL('api/chapter?url=' + encodeURIComponent(url), document.baseURI), { cache: 'no-store' }); }
+  catch { throw Object.assign(new Error('The local reader server is not reachable. Is `npm start` still running?'), { code: 'LOCAL' }); }
   const j = await res.json().catch(() => ({ ok: false, error: `Unexpected response (HTTP ${res.status})` }));
   if (!j.ok) throw Object.assign(new Error(j.error), { code: j.code });
   return j.chapter;
+}
+async function api(url) {
+  await backendReady;
+  if (backend === 'server') return apiServer(url);
+  return fetchStatic(url);
+}
+async function detectBackend() {
+  try {
+    const res = await fetch(new URL('api/health', document.baseURI), { cache: 'no-store' });
+    if (res.ok) {
+      const j = await res.json();
+      if (j && j.ok === true) return 'server';
+    }
+  } catch { /* static host, or the health check is not JSON */ }
+  return 'static';
+}
+backendReady = detectBackend().then((mode) => { backend = mode; updateModeNote(); return mode; });
+function updateModeNote() {
+  const n = $('fetchNote');
+  if (!n) return;
+  n.textContent = backend === 'server'
+    ? 'This tab is using the local server, which fetches chyoa.com directly.'
+    : 'Chapters are loaded through a public CORS proxy unless you set your own in Settings. The proxy can see the URL you request. Your passphrase stays in this browser. If the proxies fail, use the HTML button.';
+}
+async function openHtmlFile(file, hintedUrl) {
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) return showError(Object.assign(new Error('That file is over 3 MB. Save the chapter as “HTML only”, not “Webpage, complete”.'), { code: 'BAD_URL' }), hintedUrl);
+  let html;
+  try { html = await file.text(); } catch { return showError(Object.assign(new Error('Could not read that file.'), { code: 'BAD_URL' })); }
+  let url = null;
+  for (const candidate of [hintedUrl, ChyoaFetch.urlFromSavedHtml(html), $('urlInput').value]) {
+    if (!candidate) continue;
+    try { url = ChyoaFetch.normalizeUrl(candidate); break; } catch { /* try the next hint */ }
+  }
+  if (!url) return showError(Object.assign(new Error('This file has no CHYOA chapter address. Paste the chapter URL above, then open the HTML again.'), { code: 'BAD_URL' }));
+  let ch;
+  try { ch = absolutize(ChyoaParse.parseChapter(html, url)); }
+  catch (e) { return showError(e, url); }
+  ch.fetchedAt = new Date().toISOString();
+  ch.via = 'file';
+  mem.set(url, ch);
+  if (ch.url !== url) mem.set(ch.url, ch);
+  $('urlInput').value = ch.url;
+  load(ch.url, 'new', { chapter: ch });
 }
 
 // ---------- theming & reading prefs ----------
@@ -48,6 +192,7 @@ function applyPrefs() {
   $('lwRange').value = prefs.lw; $('lwOut').textContent = prefs.lw + 'ch';
   $('lhRange').value = prefs.lh; $('lhOut').textContent = (+prefs.lh).toFixed(2);
   $('fontSel').value = prefs.font; $('optPrefetch').checked = prefs.prefetch; $('optFollow').checked = prefs.follow; $('optAutosave').checked = prefs.autosave; $('autolockSel').value = String(prefs.autolock);
+  if ($('proxyInput') && document.activeElement !== $('proxyInput')) $('proxyInput').value = prefs.proxy || '';
   document.querySelectorAll('.theme-card').forEach((b) => b.setAttribute('aria-pressed', b.dataset.t === prefs.theme));
   const m = document.querySelector('meta[name=theme-color]');
   savePrefs();
@@ -70,16 +215,29 @@ function showOnly(which) {
   ['welcome', 'reader', 'error'].forEach((id) => $(id).classList.toggle('hidden', id !== which));
 }
 function showError(e, url) {
-  const titles = { NOT_FOUND: 'Chapter not found', LOGIN_REQUIRED: 'Login required', BLOCKED: 'Blocked by CHYOA\'s CDN', RATE_LIMITED: 'Slow down', MARKUP_CHANGED: 'Couldn\'t read this page', BAD_URL: 'That URL won\'t work', NETWORK: 'Network problem', LOCAL: 'Server offline', UPSTREAM: 'CHYOA error' };
+  const titles = { NOT_FOUND: 'Chapter not found', LOGIN_REQUIRED: 'Login required', BLOCKED: 'Blocked by CHYOA\'s CDN', RATE_LIMITED: 'Slow down', MARKUP_CHANGED: 'Couldn\'t read this page', BAD_URL: 'That URL won\'t work', NETWORK: 'Network problem', LOCAL: 'Server offline', UPSTREAM: 'CHYOA error', PROXY: 'Could not fetch the chapter' };
   const box = $('error');
   box.innerHTML = `<h2>${esc(titles[e.code] || 'Something went wrong')}</h2><p>${esc(e.message)}</p>` +
     (url ? `<p class="small"><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open on CHYOA ↗</a></p>` : '') +
     (current ? `<p><button class="btn" id="errBack">← Back to “${esc(current.chapterTitle)}”</button></p>` : '');
+  if (e.code === 'PROXY' || e.code === 'BLOCKED' || e.code === 'NETWORK') {
+    const row = document.createElement('p');
+    const lab = document.createElement('label');
+    lab.className = 'btn';
+    lab.textContent = 'Open saved HTML';
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = '.html,.htm,text/html'; input.hidden = true;
+    input.addEventListener('change', (ev) => { const f = ev.target.files && ev.target.files[0]; if (f) openHtmlFile(f, url); });
+    lab.appendChild(input);
+    row.appendChild(lab);
+    box.appendChild(row);
+  }
   showOnly('error');
   const b = $('errBack'); if (b) b.onclick = () => render(current);
 }
 
-async function getChapter(url, { quiet } = {}) {
+async function getChapter(url) {
+  url = ChyoaFetch.normalizeUrl(url);
   if (mem.has(url)) return mem.get(url);
   const ch = await api(url);
   mem.set(url, ch); if (ch.url !== url) mem.set(ch.url, ch);
@@ -89,6 +247,8 @@ async function getChapter(url, { quiet } = {}) {
 // mode: 'push' (follow a choice), 'new' (fresh URL), 'jump' (to path index), 'parent'
 async function load(url, mode = 'push', opts = {}) {
   cancelFollow();
+  try { url = ChyoaFetch.normalizeUrl(url); }
+  catch (e) { showError(e, url); return; }
   let ch = opts.chapter || mem.get(url);
   if (!ch && vault.isUnlocked()) ch = vault.findByUrl(url) || null;
   if (!ch) {
@@ -125,7 +285,7 @@ function render(ch) {
   if ((ch.notes || []).includes('images-login')) notes.push('Some images in this chapter are only shown to logged-in CHYOA members, so they appear as placeholders here.');
   if ((ch.notes || []).includes('empty')) notes.push('This chapter appears to have no text.');
   $('chNotes').innerHTML = notes.map((n) => `<div class="note">${esc(n)}</div>`).join('');
-  $('chBody').innerHTML = ch.html; // sanitized server-side (allowlist) — and CSP blocks inline scripts anyway
+  $('chBody').innerHTML = ch.html; // allowlist-sanitized by the parser — and the local server's CSP blocks inline scripts anyway
   $('chQuestion').textContent = ch.choices?.length ? (ch.question || 'What happens next?') : '';
   const ol = $('choiceList'); ol.innerHTML = '';
   if (!ch.choices?.length) ol.innerHTML = '<li class="ending">— The End (no further chapters on this branch yet) —</li>';
@@ -173,7 +333,7 @@ async function prefetchChoices(ch) {
   for (const c of todo) {
     if (token !== prefetchToken) return; // user moved on; stop
     try { await getChapter(c.url); markChoice(c.url); } catch { /* ignore; real click will show the error */ }
-    await sleep(300); // the server also enforces ≥1.5 s between upstream requests
+    await sleep(300); // the fetch queue also waits ≥1.5 s between upstream requests
   }
 }
 
@@ -307,6 +467,8 @@ $('btnBack').onclick = () => goBack();
 function goBack() { if (pos > 0) load(path[pos - 1].url, 'jump', { index: pos - 1 }); else toast('Start of your path'); }
 
 $('urlForm').addEventListener('submit', (e) => { e.preventDefault(); const u = $('urlInput').value.trim(); if (u) { load(normalizeInput(u), 'new'); $('urlInput').blur(); } });
+$('htmlFile').addEventListener('change', (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) openHtmlFile(f); });
+$('proxyInput').addEventListener('change', (e) => { prefs.proxy = e.target.value.trim(); preferredProxy = null; savePrefs(); const note = $('proxyStatus'); if (note) note.textContent = prefs.proxy ? 'Custom proxy saved. Public proxies will not be used.' : 'Custom proxy cleared. Public proxies are back on.'; });
 function normalizeInput(u) { return /^https?:/i.test(u) ? u : 'https://' + u.replace(/^\/+/, ''); }
 
 const bindRange = (id, key, num = Number) => $(id).addEventListener('input', (e) => { prefs[key] = num(e.target.value); applyPrefs(); });
@@ -353,8 +515,11 @@ addEventListener('keydown', (e) => {
 buildThemeGrid();
 applyPrefs();
 refreshLibrary();
-const fromHash = decodeURIComponent(location.hash.slice(1));
-const fromQuery = new URLSearchParams(location.search).get('url');
-if (fromQuery || /chyoa\.com\//.test(fromHash)) { $('urlInput').value = fromQuery || fromHash; load(fromQuery || fromHash, 'new'); }
+updateModeNote();
+backendReady.then(() => {
+  const fromHash = decodeURIComponent(location.hash.slice(1));
+  const fromQuery = new URLSearchParams(location.search).get('url');
+  if (fromQuery || /chyoa\.com\//.test(fromHash)) { $('urlInput').value = fromQuery || fromHash; load(fromQuery || fromHash, 'new'); }
+});
 // test hooks (used by tests/e2e.js; harmless otherwise)
 window.__reader = { setTheme, THEMES, load, state: () => ({ path, pos, current, unlocked: vault.isUnlocked(), saved: vault.isUnlocked() ? vault.list().length : null, prefetched: [...mem.keys()] }) };

@@ -1,10 +1,12 @@
 'use strict';
 // CHYOA Reader — tiny zero-dependency backend (Node >= 18).
-// Serves ./public and exposes GET /api/chapter?url=<chyoa url> -> clean JSON.
+// Serves this directory (the same files GitHub Pages serves) and
+// GET /api/chapter?url=<chyoa url> -> clean JSON.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { parseChapter, ParseError } = require('./lib/parse');
+const { normalizeUrl } = require('./lib/fetch-proxy');
 
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -12,7 +14,7 @@ const MIN_GAP_MS = Number(process.env.MIN_GAP_MS || 1500);   // politeness delay
 const CACHE_TTL_MS = Number(process.env.CACHE_TTL_MS || 30 * 60 * 1000);
 const CACHE_MAX = 300;
 const UA = process.env.READER_UA || 'Mozilla/5.0 (compatible; ChyoaPersonalReader/1.0; single-user reader, low rate)';
-const PUBLIC = path.join(__dirname, 'public');
+const ROOT = __dirname;
 
 // ---- in-memory cache only (chapter text is never written to disk in plaintext) ----
 const cache = new Map();
@@ -53,18 +55,6 @@ function politeFetch(url) {
   }).catch((e) => ({ error: e }))).finally(() => inflight.delete(url));
   inflight.set(url, p);
   return p;
-}
-
-function normalizeUrl(input) {
-  let s = String(input || '').trim();
-  if (!s) throw new ParseError('BAD_URL', 'Paste a CHYOA story or chapter URL.');
-  if (!/^https?:\/\//i.test(s)) s = 'https://' + s.replace(/^\/+/, '');
-  let u;
-  try { u = new URL(s); } catch { throw new ParseError('BAD_URL', 'That does not look like a URL.'); }
-  if (!/^(www\.)?chyoa\.com$/i.test(u.hostname)) throw new ParseError('BAD_URL', 'Only chyoa.com URLs are supported.');
-  if (!/^\/(story|chapter)\/[^/]+\.\d+\/?$/.test(u.pathname)) throw new ParseError('BAD_URL', 'Expected a URL like https://chyoa.com/story/Name.123 or https://chyoa.com/chapter/Name.456');
-  u.protocol = 'https:'; u.hostname = 'chyoa.com'; u.hash = ''; u.search = '';
-  return u.toString();
 }
 
 function classifyBlock(r) {
@@ -121,11 +111,13 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true, chapter: data });
     }
     if (u.pathname === '/api/health') return send(res, 200, { ok: true, cache: cache.size, upstreamRequests: upstreamCount, minGapMs: MIN_GAP_MS });
-    // static
+    // static site (repo root). Dotfiles and unknown types stay private; Pages serves the same tree.
     let p = decodeURIComponent(u.pathname);
     if (p === '/') p = '/index.html';
-    const file = path.normalize(path.join(PUBLIC, p));
-    if (!file.startsWith(PUBLIC)) return send(res, 403, 'forbidden', 'text/plain');
+    if (p.split('/').some((seg) => seg.startsWith('.'))) return send(res, 404, 'not found', 'text/plain');
+    if (!MIME[path.extname(p).toLowerCase()]) return send(res, 404, 'not found', 'text/plain');
+    const file = path.normalize(path.join(ROOT, p));
+    if (file !== ROOT && !file.startsWith(ROOT + path.sep)) return send(res, 403, 'forbidden', 'text/plain');
     fs.readFile(file, (err, buf) => {
       if (err) return send(res, 404, 'not found', 'text/plain');
       res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache', ...SEC_HEADERS });

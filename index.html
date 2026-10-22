@@ -19,6 +19,9 @@
     <form id="urlForm" class="urlform" autocomplete="off">
       <input id="urlInput" type="url" inputmode="url" placeholder="Paste a CHYOA story or chapter URL…  (press / to focus)" aria-label="CHYOA URL" required>
       <button class="btn primary" type="submit">Read</button>
+      <label class="btn" title="Open a CHYOA page you saved in your browser (HTML only)">HTML
+        <input id="htmlFile" type="file" accept=".html,.htm,text/html" hidden>
+      </label>
     </form>
     <nav class="tools">
       <button class="btn icon" id="btnBack" title="Back along your path (←)" aria-label="Back">◀</button>
@@ -35,13 +38,14 @@
   <main id="main">
     <section id="welcome" class="paper welcome">
       <h1>Your branching stories, beautifully.</h1>
-      <p>Paste a <b>chyoa.com</b> story or chapter link above. The reader pulls the chapter, shows the choices at the end, and can prefetch the next branches so turning the page is instant.</p>
+      <p>Paste a <b>chyoa.com</b> story or chapter link above. The reader shows the chapter and the choices at the end, and can prefetch the next branches so turning the page is instant.</p>
       <ul class="feature-list">
         <li><b>Encrypted library</b> — chapters you read are saved in this browser with AES‑256‑GCM, key derived from your passphrase (PBKDF2, 600k iterations).</li>
         <li><b>13 themes</b> — from Frutiger Aero to Webcore. Press <kbd>T</kbd> to cycle.</li>
         <li><b>Music</b> — add your own audio files or a stream URL; the player keeps going between chapters.</li>
       </ul>
       <p class="muted small">Tip: number keys <kbd>1</kbd>–<kbd>9</kbd> pick a choice, <kbd>←</kbd> goes back.</p>
+      <p id="fetchNote" class="muted small proxy-note"></p>
     </section>
 
     <article id="reader" class="paper reader hidden" aria-live="polite">
@@ -82,6 +86,13 @@
     <div class="field check"><label><input type="checkbox" id="optAutosave"> Auto-save chapters I read (when library is unlocked)</label></div>
     <div class="field"><label for="autolockSel">Auto-lock library after inactivity</label>
       <select id="autolockSel"><option value="0">Never</option><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="60">1 hour</option></select></div>
+    <h3>Fetching pages</h3>
+    <div class="field">
+      <label for="proxyInput">Custom CORS proxy</label>
+      <input id="proxyInput" type="text" inputmode="url" placeholder="https://your-worker.workers.dev/?url={url}" autocomplete="off" spellcheck="false">
+      <p class="muted small proxy-note">Leave this blank to try the built-in public proxies, one after another. A public proxy can see which chapter URL you request. It never sees your passphrase. If you set your own proxy, public ones are not used. When every proxy fails, use the <b>HTML</b> button with a page you saved from your browser. See the README for a Cloudflare Worker you can host yourself.</p>
+      <p id="proxyStatus" class="muted small proxy-note"></p>
+    </div>
     <h3>Theme</h3>
     <div id="themeGrid" class="theme-grid"></div>
   </aside>
@@ -164,6 +175,8 @@
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="lib/parse.js"></script>
+  <script src="lib/fetch-proxy.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
