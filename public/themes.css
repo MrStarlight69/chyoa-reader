@@ -1,0 +1,236 @@
+/* ===================== 13 themes =====================
+   Each theme sets variables + paints the three .bg-layer divs with CSS gradients / inline SVG.
+   Reading surface (--paper-*) always keeps a high-contrast text colour. No external assets. */
+
+/* 1. Frutiger Aero — sky, grass, bubbles, glossy aqua */
+[data-theme="frutiger-aero"] {
+  --font-ui: "Frutiger", "Segoe UI", "Myriad Pro", "Helvetica Neue", Arial, sans-serif; --font-head: var(--font-ui);
+  --bg: linear-gradient(180deg, #6fcbff 0%, #b5e8ff 45%, #dff6d8 70%, #7fcf4c 100%);
+  --fg: #08304d; --muted: #2c5a78; --accent: #0f9be8; --accent-2: #6fd13d;
+  --glass-bg: rgba(255,255,255,.45); --glass-border: rgba(255,255,255,.85);
+  --paper-bg: rgba(255,255,255,.9); --paper-fg: #0e2a3f; --paper-muted: #46647a; --paper-link: #0866b8;
+  --primary-bg: linear-gradient(#8fe2ff, #18a6ee 50%, #0b7fd4 51%, #2bb5ff); --btn-bg: linear-gradient(#ffffff, #e3f4ff 50%, #cfeaff 51%, #eaf7ff);
+  --choice-bg: linear-gradient(#ffffff, #eaf7ff 50%, #daf0ff 51%, #f1faff);
+}
+[data-theme="frutiger-aero"] .bg-a { background:
+  radial-gradient(ellipse 60% 30% at 50% 100%, rgba(80,190,60,.75), transparent 70%),
+  radial-gradient(ellipse 80% 25% at 20% 105%, rgba(40,160,50,.6), transparent 70%),
+  radial-gradient(circle at 80% 12%, rgba(255,255,255,.9), rgba(255,255,255,0) 18%); }
+[data-theme="frutiger-aero"] .bg-b { background-image:
+  radial-gradient(circle at 30% 30%, rgba(255,255,255,.95) 0 6%, rgba(255,255,255,.25) 30%, rgba(120,210,255,.15) 60%, rgba(255,255,255,.6) 68%, transparent 70%);
+  background-size: 140px 140px; background-position: 10% 40%; opacity: .55; mask-image: radial-gradient(ellipse at 15% 60%, #000 0 25%, transparent 45%), radial-gradient(ellipse at 88% 35%, #000 0 18%, transparent 35%); -webkit-mask-composite: source-over; animation: aero-float 24s ease-in-out infinite alternate; }
+[data-theme="frutiger-aero"] .bg-c { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='300' viewBox='0 0 1200 300'%3E%3Cpath d='M0 220 C200 160 400 260 600 200 S1000 140 1200 210' fill='none' stroke='white' stroke-opacity='.55' stroke-width='3'/%3E%3Cpath d='M0 250 C250 190 450 280 700 230 S1050 180 1200 240' fill='none' stroke='white' stroke-opacity='.35' stroke-width='2'/%3E%3C/svg%3E") bottom/100% auto no-repeat; }
+@keyframes aero-float { to { background-position: 14% 30%; transform: translateY(-20px); } }
+
+/* 2. Frutiger Galaxy — deep space, nebulae, glossy cosmic orbs */
+[data-theme="frutiger-galaxy"] {
+  --font-ui: "Segoe UI", "Frutiger", "Helvetica Neue", Arial, sans-serif;
+  --bg: radial-gradient(ellipse at 30% 20%, #2a1b6b 0%, #0b0b2e 50%, #02020f 100%);
+  --fg: #e9eeff; --muted: #a8b3e6; --accent: #59c7ff; --accent-2: #c77dff; --text-shadow-ui: 0 0 8px rgba(120,180,255,.6);
+  --glass-bg: rgba(20,24,70,.5); --glass-border: rgba(140,170,255,.35); --glass-shadow: 0 10px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.25);
+  --paper-bg: rgba(12,14,44,.88); --paper-fg: #eef1ff; --paper-muted: #aab4e0; --paper-link: #8fd6ff; --paper-border: rgba(140,170,255,.3); --paper-shadow: 0 0 60px rgba(90,80,255,.35);
+  --btn-bg: linear-gradient(#3a3f8f, #1b1e55); --btn-fg: #e6ecff; --btn-border: rgba(150,170,255,.4); --btn-gloss: linear-gradient(rgba(255,255,255,.4), rgba(255,255,255,0));
+  --primary-bg: linear-gradient(#7fe0ff, #3a7bff 50%, #5a3bff 51%, #a066ff); --kbd-bg: rgba(255,255,255,.12);
+  --choice-bg: linear-gradient(rgba(60,70,160,.6), rgba(25,28,80,.6)); --choice-fg: #eef1ff; --choice-border: rgba(150,170,255,.35); --choice-hover: rgba(80,90,200,.6);
+  --selection: rgba(160,120,255,.45);
+}
+[data-theme="frutiger-galaxy"] .bg-a { background: radial-gradient(ellipse 50% 35% at 75% 30%, rgba(200,80,255,.35), transparent 70%), radial-gradient(ellipse 45% 30% at 20% 75%, rgba(40,160,255,.3), transparent 70%); }
+[data-theme="frutiger-galaxy"] .bg-b { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cg fill='white'%3E%3Ccircle cx='20' cy='30' r='1'/%3E%3Ccircle cx='80' cy='120' r='1.4'/%3E%3Ccircle cx='150' cy='50' r='.8'/%3E%3Ccircle cx='220' cy='200' r='1.2'/%3E%3Ccircle cx='270' cy='90' r='.7'/%3E%3Ccircle cx='40' cy='250' r='1'/%3E%3Ccircle cx='130' cy='220' r='.6'/%3E%3Ccircle cx='190' cy='140' r='1.6' fill-opacity='.8'/%3E%3Ccircle cx='250' cy='280' r='.9'/%3E%3C/g%3E%3C/svg%3E"); animation: twinkle 6s ease-in-out infinite alternate; }
+[data-theme="frutiger-galaxy"] .bg-c { background: radial-gradient(circle at 85% 85%, rgba(255,255,255,.9) 0 2%, #8fd6ff 6%, #3a5bd9 14%, rgba(20,20,80,0) 15%), radial-gradient(circle at 12% 18%, #fff 0 1%, #c77dff 3%, rgba(0,0,0,0) 6%); }
+@keyframes twinkle { from { opacity: .55; } to { opacity: 1; } }
+
+/* 3. Alba Aero — dawn-white, pearl, ice-silver, airy minimal */
+[data-theme="alba-aero"] {
+  --font-ui: "Segoe UI Light", "Segoe UI", "Helvetica Neue", Arial, sans-serif; --font-read: "Palatino Linotype", Palatino, Georgia, serif;
+  --bg: linear-gradient(160deg, #ffffff 0%, #eef4fa 40%, #e3ecf5 70%, #f8f3ee 100%);
+  --fg: #23303c; --muted: #66788a; --accent: #6aa9d8; --accent-2: #e9c9a8;
+  --glass-bg: rgba(255,255,255,.6); --glass-border: rgba(255,255,255,1); --glass-shadow: 0 8px 30px rgba(120,140,170,.18), inset 0 1px 0 #fff;
+  --paper-bg: rgba(255,255,255,.95); --paper-fg: #1f2a35; --paper-muted: #697a8b; --paper-link: #2f6f9f; --paper-shadow: 0 20px 60px rgba(120,140,170,.2);
+  --btn-bg: linear-gradient(#ffffff, #eef2f6 50%, #e4eaf0 51%, #f6f8fa); --btn-fg: #2b3a48; --btn-border: rgba(110,130,150,.25);
+  --primary-bg: linear-gradient(#cfe6f7, #8fbde2 50%, #6aa9d8 51%, #a9d0ee); --primary-fg: #0f2638;
+  --choice-bg: linear-gradient(#ffffff, #f3f6f9); --choice-fg: #23303c; --choice-border: rgba(110,130,150,.22); --choice-hover: #eef4fa;
+}
+[data-theme="alba-aero"] .bg-a { background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255,240,220,.9), transparent 70%), radial-gradient(ellipse 50% 40% at 100% 100%, rgba(200,220,240,.7), transparent 70%); }
+[data-theme="alba-aero"] .bg-b { background: conic-gradient(from 200deg at 50% -10%, rgba(255,255,255,0), rgba(255,255,255,.7) 10deg, rgba(255,255,255,0) 20deg, rgba(255,255,255,.5) 35deg, rgba(255,255,255,0) 50deg); }
+[data-theme="alba-aero"] .bg-c { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Ccircle cx='480' cy='140' r='90' fill='none' stroke='%23b8cde0' stroke-opacity='.5'/%3E%3Ccircle cx='480' cy='140' r='130' fill='none' stroke='%23b8cde0' stroke-opacity='.3'/%3E%3Ccircle cx='100' cy='480' r='60' fill='white' fill-opacity='.6'/%3E%3C/svg%3E") right top/600px no-repeat; }
+
+/* 4. Musica Aero — vibrant candy gloss, waveforms, notes */
+[data-theme="musica-aero"] {
+  --font-ui: "Trebuchet MS", "Segoe UI", Arial, sans-serif; --font-head: "Trebuchet MS", "Arial Rounded MT Bold", Arial, sans-serif;
+  --bg: linear-gradient(135deg, #ff4fa3 0%, #ff9a3c 30%, #ffd84a 50%, #36d6c6 75%, #2e7bff 100%);
+  --fg: #2a0b2e; --muted: #5a2a50; --accent: #ff2f8e; --accent-2: #18c9c1;
+  --glass-bg: rgba(255,255,255,.5); --glass-border: rgba(255,255,255,.9);
+  --paper-bg: rgba(255,255,255,.93); --paper-fg: #23102a; --paper-muted: #6a4a66; --paper-link: #c0136a;
+  --primary-bg: linear-gradient(#ff9fd0, #ff2f8e 50%, #d6136f 51%, #ff5aa8); --btn-bg: linear-gradient(#ffffff, #fff0f7 50%, #ffe0ef 51%, #fff4fa); --btn-fg: #5b0c36; --btn-border: rgba(200,20,110,.25);
+  --choice-bg: linear-gradient(#ffffff, #fff1f8); --choice-fg: #3a0c2a; --choice-border: rgba(255,47,142,.3); --choice-hover: #ffe6f2;
+  --progress: linear-gradient(90deg, #ff2f8e, #ffd84a, #18c9c1, #2e7bff); --selection: rgba(255,47,142,.3);
+}
+[data-theme="musica-aero"] .bg-a { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='400' viewBox='0 0 1200 400'%3E%3Cg fill='none' stroke='white' stroke-linecap='round'%3E%3Cpath d='M0 200 Q50 120 100 200 T200 200 T300 200 T400 200 T500 200 T600 200 T700 200 T800 200 T900 200 T1000 200 T1100 200 T1200 200' stroke-opacity='.6' stroke-width='4'/%3E%3Cpath d='M0 200 Q50 60 100 200 T200 200 T300 200 T400 200 T500 200 T600 200 T700 200 T800 200 T900 200 T1000 200 T1100 200 T1200 200' stroke-opacity='.3' stroke-width='2'/%3E%3Cpath d='M0 200 Q50 260 100 200 T200 200 T300 200 T400 200 T500 200 T600 200 T700 200 T800 200 T900 200 T1000 200 T1100 200 T1200 200' stroke-opacity='.4' stroke-width='3'/%3E%3C/g%3E%3C/svg%3E") center 70%/120% auto no-repeat; animation: wave 10s linear infinite alternate; }
+[data-theme="musica-aero"] .bg-b { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cg fill='white' fill-opacity='.45'%3E%3Cellipse cx='40' cy='70' rx='12' ry='9'/%3E%3Crect x='50' y='20' width='3' height='50'/%3E%3Cellipse cx='180' cy='190' rx='12' ry='9'/%3E%3Cellipse cx='215' cy='180' rx='12' ry='9'/%3E%3Cpath d='M190 140h3v50h-3zM225 130h3v50h-3zM190 140l38-10v8l-38 10z'/%3E%3C/g%3E%3C/svg%3E"); }
+[data-theme="musica-aero"] .bg-c { background: radial-gradient(circle at 15% 20%, rgba(255,255,255,.8) 0 3%, rgba(255,255,255,0) 12%), radial-gradient(circle at 85% 70%, rgba(255,255,255,.6) 0 2%, rgba(255,255,255,0) 10%); }
+@keyframes wave { to { background-position: 30% 72%; } }
+
+/* 5. Futurism Aero — brushed chrome, cyan light lines, sleek */
+[data-theme="futurism-aero"] {
+  --font-ui: "Eurostile", "Bank Gothic", "Microgramma", "Segoe UI", Verdana, sans-serif; --font-head: "Eurostile", "Segoe UI Semibold", Verdana, sans-serif; --radius: 6px; --btn-radius: 6px;
+  --bg: linear-gradient(180deg, #d9e2ea 0%, #f4f7fa 35%, #b9c6d2 60%, #e8eef3 100%);
+  --fg: #0e1c28; --muted: #4a5e70; --accent: #00b8e6; --accent-2: #8a9bb0;
+  --glass-bg: linear-gradient(180deg, rgba(255,255,255,.8), rgba(210,222,232,.6)); --glass-border: rgba(255,255,255,.9); --glass-shadow: 0 8px 24px rgba(20,40,60,.25), inset 0 1px 0 #fff, inset 0 -1px 0 rgba(0,0,0,.1);
+  --paper-bg: rgba(250,252,254,.95); --paper-fg: #0f1d29; --paper-muted: #536677; --paper-link: #006f99; --paper-border: #c6d2dc;
+  --btn-bg: linear-gradient(#fdfdfd, #d5dde4 48%, #b7c3cd 52%, #e9eef2); --btn-fg: #102030; --btn-border: #8796a4;
+  --primary-bg: linear-gradient(#9cf0ff, #00b8e6 48%, #0089b3 52%, #36d4ff); --primary-fg: #fff;
+  --choice-bg: linear-gradient(90deg, #f7fafc, #e4ebf1); --choice-fg: #102030; --choice-border: #a8b6c3; --choice-hover: #dff6fd;
+}
+[data-theme="futurism-aero"] .bg-a { background: repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 1px, transparent 1px 4px), linear-gradient(115deg, transparent 40%, rgba(255,255,255,.7) 50%, transparent 60%); }
+[data-theme="futurism-aero"] .bg-b { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='900' viewBox='0 0 1400 900'%3E%3Cg fill='none' stroke='%2300c8ff' stroke-width='2'%3E%3Cpath d='M-50 700 C400 600 900 750 1450 520' stroke-opacity='.6'/%3E%3Cpath d='M-50 740 C420 650 920 800 1450 570' stroke-opacity='.35'/%3E%3Cpath d='M-50 200 L500 200 L560 260 L1450 260' stroke-opacity='.25'/%3E%3C/g%3E%3C/svg%3E") center/cover no-repeat; }
+[data-theme="futurism-aero"] .bg-c { background: radial-gradient(ellipse 30% 8% at 70% 62%, rgba(0,200,255,.35), transparent); }
+
+/* 6. Frutiger Evil — corrupted aero: oil-black glass, blood-red gloss, sickly glow */
+[data-theme="frutiger-evil"] {
+  --font-ui: "Segoe UI", "Frutiger", Arial, sans-serif; --font-read: Georgia, "Times New Roman", serif;
+  --bg: radial-gradient(ellipse at 50% 120%, #4a0008 0%, #160204 50%, #050001 100%);
+  --fg: #f4dcdc; --muted: #b88a8a; --accent: #ff1f3d; --accent-2: #8cff3a; --text-shadow-ui: 0 0 8px rgba(255,30,60,.6);
+  --glass-bg: rgba(30,4,8,.6); --glass-border: rgba(255,40,70,.35); --glass-shadow: 0 10px 40px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,120,140,.25), 0 0 30px rgba(255,0,40,.15);
+  --paper-bg: rgba(16,4,6,.92); --paper-fg: #f3e4e4; --paper-muted: #c29a9a; --paper-link: #ff6b80; --paper-border: rgba(255,40,70,.3); --paper-shadow: 0 0 60px rgba(255,0,40,.25);
+  --btn-bg: linear-gradient(#5a0a14, #22040a); --btn-fg: #ffd6dc; --btn-border: rgba(255,60,90,.45); --btn-gloss: linear-gradient(rgba(255,150,160,.35), rgba(255,255,255,0));
+  --primary-bg: linear-gradient(#ff7a8a, #e0001f 50%, #8a0012 51%, #ff2a45); --kbd-bg: rgba(255,255,255,.08);
+  --choice-bg: linear-gradient(rgba(80,8,20,.7), rgba(30,4,8,.7)); --choice-fg: #ffe4e8; --choice-border: rgba(255,40,70,.35); --choice-hover: rgba(120,10,30,.7);
+  --progress: linear-gradient(90deg, #8a0012, #ff1f3d, #8cff3a); --selection: rgba(255,31,61,.4);
+}
+[data-theme="frutiger-evil"] .bg-a { background: radial-gradient(circle at 30% 35%, rgba(255,255,255,.5) 0 1.5%, rgba(255,30,60,.6) 4%, rgba(60,0,10,.8) 9%, transparent 10%), radial-gradient(circle at 78% 22%, rgba(255,200,200,.4) 0 1%, rgba(200,0,30,.5) 3%, transparent 6%), radial-gradient(circle at 65% 80%, rgba(140,255,60,.35) 0 1%, rgba(40,90,0,.3) 4%, transparent 7%); animation: evil-pulse 5s ease-in-out infinite; }
+[data-theme="frutiger-evil"] .bg-b { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='800'%3E%3Cg fill='none' stroke='%23ff2040' stroke-opacity='.22' stroke-width='1.5'%3E%3Cpath d='M400 0 L380 120 L420 200 L360 330 L410 420 L300 560 L330 800'/%3E%3Cpath d='M380 120 L250 160 L180 260'/%3E%3Cpath d='M360 330 L520 380 L640 340 L800 400'/%3E%3Cpath d='M300 560 L150 600 L0 580'/%3E%3C/g%3E%3C/svg%3E") center/cover; }
+[data-theme="frutiger-evil"] .bg-c { background: linear-gradient(180deg, transparent 60%, rgba(140,0,20,.35)), repeating-linear-gradient(0deg, rgba(0,0,0,.25) 0 2px, transparent 2px 4px); }
+@keyframes evil-pulse { 50% { filter: brightness(1.4) hue-rotate(-10deg); } }
+
+/* 7. Dark Aero — Vista-night glass, teal/blue glow */
+[data-theme="dark-aero"] {
+  --font-ui: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --bg: linear-gradient(160deg, #0a1a26 0%, #05121c 50%, #0b2733 100%);
+  --fg: #e2f3ff; --muted: #8fb3c8; --accent: #2fd1ff; --accent-2: #19e3b1; --text-shadow-ui: 0 1px 2px rgba(0,0,0,.6);
+  --glass-bg: rgba(10,30,45,.55); --glass-border: rgba(120,200,255,.28); --glass-shadow: 0 10px 40px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.18);
+  --paper-bg: rgba(10,22,32,.9); --paper-fg: #e6f2fa; --paper-muted: #94b2c4; --paper-link: #6fdcff; --paper-border: rgba(120,200,255,.2); --paper-shadow: 0 20px 60px rgba(0,0,0,.6);
+  --btn-bg: linear-gradient(#2a4a5e, #12293a 50%, #0a1d2b 51%, #1a3a50); --btn-fg: #dff3ff; --btn-border: rgba(120,200,255,.35); --btn-gloss: linear-gradient(rgba(255,255,255,.3), rgba(255,255,255,0));
+  --primary-bg: linear-gradient(#7fe8ff, #17a9e0 50%, #0a7bb0 51%, #2fd1ff); --kbd-bg: rgba(255,255,255,.1);
+  --choice-bg: linear-gradient(rgba(30,60,80,.7), rgba(12,28,40,.7)); --choice-fg: #e2f3ff; --choice-border: rgba(120,200,255,.28); --choice-hover: rgba(30,80,110,.75);
+}
+[data-theme="dark-aero"] .bg-a { background: radial-gradient(ellipse 80% 40% at 50% 110%, rgba(25,227,177,.25), transparent 70%), radial-gradient(ellipse 60% 40% at 0% 0%, rgba(47,209,255,.18), transparent 70%); }
+[data-theme="dark-aero"] .bg-b { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='900' viewBox='0 0 1400 900'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%232fd1ff' stop-opacity='0'/%3E%3Cstop offset='.5' stop-color='%232fd1ff' stop-opacity='.5'/%3E%3Cstop offset='1' stop-color='%2319e3b1' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 600 C300 450 700 700 1400 420' stroke='url(%23g)' stroke-width='60' fill='none' opacity='.35'/%3E%3Cpath d='M0 640 C320 500 720 740 1400 470' stroke='url(%23g)' stroke-width='3' fill='none'/%3E%3C/svg%3E") center/cover no-repeat; }
+
+/* 8. Y2K Futurism — chrome, iridescent, grid, bubbly */
+[data-theme="y2k-futurism"] {
+  --font-ui: "Arial Rounded MT Bold", "Trebuchet MS", "Verdana", sans-serif; --font-head: "Arial Black", "Arial Rounded MT Bold", sans-serif; --radius: 22px;
+  --bg: linear-gradient(135deg, #e0e6ff 0%, #ffd6f5 30%, #d6fff6 60%, #e6d6ff 100%);
+  --fg: #1a1040; --muted: #5a4a8a; --accent: #7a3cff; --accent-2: #00e0c0;
+  --glass-bg: linear-gradient(135deg, rgba(255,255,255,.7), rgba(220,230,255,.5)); --glass-border: rgba(255,255,255,1); --glass-shadow: 0 8px 30px rgba(120,60,255,.25), inset 0 2px 0 #fff, inset 0 -2px 6px rgba(120,60,255,.15);
+  --paper-bg: rgba(255,255,255,.93); --paper-fg: #1c1238; --paper-muted: #5f5288; --paper-link: #5a1fe0; --paper-shadow: 0 20px 50px rgba(120,60,255,.25);
+  --btn-bg: linear-gradient(135deg, #ffffff, #d9dcf0 45%, #f4e6ff 55%, #c9f5ee); --btn-fg: #2a1a60; --btn-border: rgba(122,60,255,.3);
+  --primary-bg: linear-gradient(135deg, #ff7ae0, #7a3cff 50%, #00e0c0); --primary-fg: #fff;
+  --choice-bg: linear-gradient(135deg, #ffffff, #f2edff); --choice-fg: #1a1040; --choice-border: rgba(122,60,255,.3); --choice-hover: #efe6ff;
+  --progress: linear-gradient(90deg, #ff7ae0, #7a3cff, #00e0c0); --selection: rgba(122,60,255,.3);
+}
+[data-theme="y2k-futurism"] .bg-a { background: linear-gradient(transparent 60%, rgba(122,60,255,.12)), repeating-linear-gradient(0deg, rgba(122,60,255,.18) 0 1px, transparent 1px 40px), repeating-linear-gradient(90deg, rgba(122,60,255,.18) 0 1px, transparent 1px 40px); mask-image: linear-gradient(to top, #000, transparent 70%); -webkit-mask-image: linear-gradient(to top, #000, transparent 70%); transform: perspective(500px) rotateX(55deg); transform-origin: bottom; }
+[data-theme="y2k-futurism"] .bg-b { background: radial-gradient(circle at 80% 20%, #fff 0 3%, #e0d0ff 6%, #b0a0e0 10%, rgba(255,255,255,0) 11%), radial-gradient(circle at 12% 30%, rgba(255,255,255,.9) 0 2%, #c0fff4 4%, rgba(255,255,255,0) 7%); }
+[data-theme="y2k-futurism"] .bg-c { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cpath d='M100 80 L104 96 L120 100 L104 104 L100 120 L96 104 L80 100 L96 96Z' fill='white' fill-opacity='.9'/%3E%3Cpath d='M30 20 L32 28 L40 30 L32 32 L30 40 L28 32 L20 30 L28 28Z' fill='%237a3cff' fill-opacity='.35'/%3E%3C/svg%3E"); }
+
+/* 9. Technozen — calm stone & moss, circuit traces + ensō */
+[data-theme="technozen"] {
+  --font-ui: "Helvetica Neue", "Segoe UI", Helvetica, Arial, sans-serif; --font-read: "Iowan Old Style", "Palatino Linotype", Georgia, serif; --radius: 10px; --btn-radius: 8px;
+  --bg: linear-gradient(180deg, #e9ece6 0%, #dfe5df 50%, #cfd8d2 100%);
+  --fg: #23302b; --muted: #5e6e66; --accent: #3f8f7a; --accent-2: #b9a27a;
+  --glass-bg: rgba(250,250,246,.6); --glass-border: rgba(255,255,255,.8); --glass-shadow: 0 6px 24px rgba(40,60,50,.12), inset 0 1px 0 #fff;
+  --paper-bg: rgba(248,246,240,.96); --paper-fg: #26302b; --paper-muted: #66746c; --paper-link: #2c6e5d; --paper-border: #e2e0d8; --paper-shadow: 0 16px 40px rgba(40,60,50,.14);
+  --btn-bg: linear-gradient(#fbfbf8, #eceee8); --btn-fg: #2b3a33; --btn-border: rgba(60,90,75,.25); --btn-gloss: linear-gradient(rgba(255,255,255,.6), rgba(255,255,255,0));
+  --primary-bg: linear-gradient(#5fae97, #3f8f7a); --choice-bg: #fbfaf6; --choice-fg: #26302b; --choice-border: rgba(60,90,75,.22); --choice-hover: #eef3ee;
+  --progress: linear-gradient(90deg, #3f8f7a, #b9a27a);
+}
+[data-theme="technozen"] .bg-a { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='none' stroke='%233f8f7a' stroke-opacity='.18' stroke-width='1.5'%3E%3Cpath d='M0 40h60l20 20h60l20-20h80M0 160h40l20 20h100M120 0v40M200 240v-60l-20-20'/%3E%3C/g%3E%3Cg fill='%233f8f7a' fill-opacity='.25'%3E%3Ccircle cx='60' cy='40' r='3'/%3E%3Ccircle cx='160' cy='180' r='3'/%3E%3Ccircle cx='120' cy='40' r='3'/%3E%3C/g%3E%3C/svg%3E"); }
+[data-theme="technozen"] .bg-b { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='500' height='500' viewBox='0 0 500 500'%3E%3Cpath d='M250 70 A180 180 0 1 1 110 140' fill='none' stroke='%23324a40' stroke-opacity='.14' stroke-width='26' stroke-linecap='round'/%3E%3C/svg%3E") right -80px bottom -60px/520px no-repeat; }
+[data-theme="technozen"] .bg-c { background: linear-gradient(180deg, transparent 75%, rgba(185,162,122,.15)); }
+
+/* 10. Helvetica Aqua Aero — pinstripes, blue gel, brushed toolbar */
+[data-theme="helvetica-aqua-aero"] {
+  --font-ui: "Helvetica Neue", Helvetica, "Lucida Grande", Arial, sans-serif; --font-head: "Helvetica Neue", Helvetica, Arial, sans-serif; --font-read: "Helvetica Neue", Helvetica, Arial, sans-serif; --radius: 10px;
+  --bg: repeating-linear-gradient(0deg, #f2f2f2 0 2px, #e6e6e6 2px 4px);
+  --fg: #111; --muted: #555; --accent: #2a7fff; --accent-2: #8ec5ff;
+  --glass-bg: linear-gradient(#f6f6f6, #cfcfcf); --glass-border: #9a9a9a; --glass-shadow: 0 4px 14px rgba(0,0,0,.25), inset 0 1px 0 #fff; --glass-blur: 0px;
+  --paper-bg: #ffffff; --paper-fg: #111; --paper-muted: #555; --paper-link: #0a5ad6; --paper-border: #b8b8b8; --paper-shadow: 0 10px 30px rgba(0,0,0,.25);
+  --btn-bg: linear-gradient(#ffffff, #e9e9e9 50%, #d6d6d6 51%, #f2f2f2); --btn-fg: #111; --btn-border: #8a8a8a;
+  --btn-gloss: linear-gradient(rgba(255,255,255,.9), rgba(255,255,255,.2));
+  --primary-bg: linear-gradient(#cfe6ff 0%, #6fb1ff 45%, #2a7fff 50%, #5fb0ff 85%, #a9d4ff 100%); --primary-fg: #fff;
+  --choice-bg: linear-gradient(#ffffff, #f0f0f0); --choice-fg: #111; --choice-border: #a8a8a8; --choice-hover: #e8f2ff;
+  --progress: linear-gradient(#a9d4ff, #2a7fff);
+}
+[data-theme="helvetica-aqua-aero"] .bg-a { background: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(255,255,255,.8), transparent 70%); }
+[data-theme="helvetica-aqua-aero"] .bg-b { background: radial-gradient(circle at 92% 88%, rgba(42,127,255,.0) 0, transparent); }
+[data-theme="helvetica-aqua-aero"] .topbar { background: linear-gradient(#e8e8e8, #bdbdbd); }
+[data-theme="helvetica-aqua-aero"] .btn.primary, [data-theme="helvetica-aqua-aero"] .choice .num { box-shadow: 0 2px 4px rgba(0,60,160,.4), inset 0 -2px 4px rgba(255,255,255,.5); }
+
+/* 11. Frutiger Aurora — polar night with flowing aurora */
+[data-theme="frutiger-aurora"] {
+  --font-ui: "Segoe UI", "Frutiger", "Helvetica Neue", Arial, sans-serif;
+  --bg: linear-gradient(180deg, #020a1a 0%, #06213a 55%, #0b3a4a 85%, #12303a 100%);
+  --fg: #e6fff6; --muted: #9cc9bd; --accent: #3dffb0; --accent-2: #9b6bff; --text-shadow-ui: 0 0 10px rgba(61,255,176,.4);
+  --glass-bg: rgba(6,30,45,.5); --glass-border: rgba(120,255,210,.25); --glass-shadow: 0 10px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.15);
+  --paper-bg: rgba(5,20,32,.88); --paper-fg: #eafaf5; --paper-muted: #9fc4ba; --paper-link: #7dffd0; --paper-border: rgba(120,255,210,.2); --paper-shadow: 0 0 70px rgba(61,255,176,.15);
+  --btn-bg: linear-gradient(#174a5a, #0a2532); --btn-fg: #e6fff6; --btn-border: rgba(120,255,210,.35); --btn-gloss: linear-gradient(rgba(255,255,255,.3), rgba(255,255,255,0));
+  --primary-bg: linear-gradient(#a0ffd8, #1fd69a 50%, #0e9e8a 51%, #3dffb0); --primary-fg: #02261b; --kbd-bg: rgba(255,255,255,.1);
+  --choice-bg: linear-gradient(rgba(20,70,80,.6), rgba(6,30,45,.6)); --choice-fg: #eafaf5; --choice-border: rgba(120,255,210,.28); --choice-hover: rgba(20,100,100,.65);
+  --progress: linear-gradient(90deg, #3dffb0, #3dd6ff, #9b6bff); --selection: rgba(61,255,176,.3);
+}
+[data-theme="frutiger-aurora"] .bg-a { background: radial-gradient(ellipse 60% 25% at 30% 25%, rgba(61,255,176,.45), transparent 70%), radial-gradient(ellipse 50% 22% at 65% 18%, rgba(61,214,255,.35), transparent 70%), radial-gradient(ellipse 40% 20% at 85% 30%, rgba(155,107,255,.4), transparent 70%); filter: blur(10px); animation: aurora 14s ease-in-out infinite alternate; }
+[data-theme="frutiger-aurora"] .bg-b { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='600' viewBox='0 0 1400 600'%3E%3Cdefs%3E%3ClinearGradient id='a' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233dffb0' stop-opacity='0'/%3E%3Cstop offset='.6' stop-color='%233dffb0' stop-opacity='.35'/%3E%3Cstop offset='1' stop-color='%233dffb0' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M0 300 C200 120 400 380 700 220 S1100 80 1400 260 L1400 380 C1100 200 900 420 700 340 S200 260 0 420Z' fill='url(%23a)'/%3E%3C/svg%3E") top/100% auto no-repeat; animation: aurora 18s ease-in-out infinite alternate-reverse; }
+[data-theme="frutiger-aurora"] .bg-c { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='200' viewBox='0 0 1400 200' preserveAspectRatio='none'%3E%3Cpath d='M0 200 L0 140 L120 90 L220 130 L360 60 L500 120 L620 80 L760 140 L900 70 L1040 120 L1180 90 L1300 130 L1400 100 L1400 200Z' fill='%23020a14'/%3E%3C/svg%3E") bottom/100% 160px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260'%3E%3Cg fill='white' fill-opacity='.7'%3E%3Ccircle cx='30' cy='40' r='.9'/%3E%3Ccircle cx='170' cy='90' r='1.1'/%3E%3Ccircle cx='220' cy='20' r='.7'/%3E%3Ccircle cx='90' cy='150' r='.8'/%3E%3C/g%3E%3C/svg%3E"); }
+@keyframes aurora { to { transform: translateX(-4%) skewX(-6deg); opacity: .8; } }
+
+/* 12. Dreamcore — pastel haze, clouds, soft surreal checkerboard horizon */
+[data-theme="dreamcore"] {
+  --font-ui: "Trebuchet MS", "Segoe UI", sans-serif; --font-read: "Book Antiqua", "Palatino Linotype", Georgia, serif; --font-head: "Georgia", serif; --radius: 20px;
+  --bg: linear-gradient(180deg, #ffd9ec 0%, #e8dcff 40%, #d6f0ff 75%, #fff4d6 100%);
+  --fg: #3a2a4a; --muted: #7a6a8a; --accent: #c77ddb; --accent-2: #8fd1ff;
+  --glass-bg: rgba(255,250,255,.55); --glass-border: rgba(255,255,255,.95); --glass-shadow: 0 10px 40px rgba(200,140,220,.3), inset 0 1px 0 #fff;
+  --paper-bg: rgba(255,251,246,.94); --paper-fg: #33263f; --paper-muted: #7b6a88; --paper-link: #9a3fb5; --paper-shadow: 0 20px 60px rgba(200,140,220,.35);
+  --btn-bg: linear-gradient(#fffaff, #f5e6ff); --btn-fg: #4a2a5a; --btn-border: rgba(199,125,219,.35);
+  --primary-bg: linear-gradient(#ffc6ec, #c77ddb 55%, #a98bff); --choice-bg: linear-gradient(#fffaff, #f8efff); --choice-fg: #3a2a4a; --choice-border: rgba(199,125,219,.3); --choice-hover: #f3e4ff;
+  --progress: linear-gradient(90deg, #ffb3dc, #c77ddb, #8fd1ff); --selection: rgba(199,125,219,.3);
+}
+[data-theme="dreamcore"] .bg-a { background: radial-gradient(ellipse 25% 10% at 20% 22%, rgba(255,255,255,.95), transparent 70%), radial-gradient(ellipse 18% 8% at 28% 18%, rgba(255,255,255,.9), transparent 70%), radial-gradient(ellipse 28% 11% at 75% 35%, rgba(255,255,255,.9), transparent 70%), radial-gradient(ellipse 16% 7% at 68% 31%, rgba(255,255,255,.85), transparent 70%); filter: blur(4px); animation: drift 40s linear infinite alternate; }
+[data-theme="dreamcore"] .bg-b { background: repeating-conic-gradient(rgba(120,90,160,.16) 0 25%, rgba(255,255,255,.2) 0 50%) 0 0/60px 60px; mask-image: linear-gradient(to top, #000, transparent 35%); -webkit-mask-image: linear-gradient(to top, #000, transparent 35%); transform: perspective(400px) rotateX(60deg); transform-origin: bottom; }
+[data-theme="dreamcore"] .bg-c { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='.8' stroke-width='2'%3E%3Cpath d='M60 80 q10-14 20 0 q-10 14-20 0z'/%3E%3Ccircle cx='70' cy='80' r='3' fill='%23b08cd8' stroke='none'/%3E%3C/g%3E%3Cg fill='%23fff' fill-opacity='.8'%3E%3Cpath d='M300 260 l3 9 9 3-9 3-3 9-3-9-9-3 9-3z'/%3E%3Ccircle cx='200' cy='150' r='2'/%3E%3C/g%3E%3C/svg%3E"), radial-gradient(circle at 85% 12%, rgba(255,250,220,.9) 0 4%, rgba(255,240,200,0) 14%); }
+@keyframes drift { to { transform: translateX(6%); } }
+
+/* 13. Webcore — 90s/00s personal homepage: tiles, bevels, starfield, sparkles */
+[data-theme="webcore"] {
+  --font-ui: Verdana, Tahoma, "MS Sans Serif", Arial, sans-serif; --font-head: "Comic Sans MS", "Chalkboard SE", "Comic Neue", cursive; --font-read: "Times New Roman", Times, serif; --radius: 0px; --btn-radius: 0px;
+  --bg: #000040;
+  --fg: #ffff66; --muted: #c0c0ff; --accent: #ff00ff; --accent-2: #00ffff; --text-shadow-ui: 2px 2px 0 #000;
+  --glass-bg: #c0c0c0; --glass-border: #ffffff; --glass-shadow: inset -2px -2px 0 #404040, inset 2px 2px 0 #ffffff, 4px 4px 0 rgba(0,0,0,.6); --glass-blur: 0px;
+  --paper-bg: #ffffff; --paper-fg: #000000; --paper-muted: #444; --paper-link: #0000ee; --paper-border: #808080; --paper-shadow: 6px 6px 0 #ff00ff, 12px 12px 0 #00ffff;
+  --btn-bg: #c0c0c0; --btn-fg: #000; --btn-border: #000; --btn-gloss: none;
+  --primary-bg: linear-gradient(#000080, #1084d0); --primary-fg: #fff;
+  --choice-bg: #ffffcc; --choice-fg: #000080; --choice-border: #000080; --choice-hover: #ccffff;
+  --progress: linear-gradient(90deg, red, orange, yellow, lime, cyan, blue, magenta); --selection: #ff00ff; --kbd-bg: #e0e0e0;
+}
+[data-theme="webcore"] .bg-a { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Crect width='120' height='120' fill='%23000040'/%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='10' cy='12' r='1'/%3E%3Ccircle cx='70' cy='30' r='1.5'/%3E%3Ccircle cx='100' cy='90' r='1'/%3E%3Ccircle cx='40' cy='80' r='1'/%3E%3C/g%3E%3Cpath d='M90 50 l2 6 6 2-6 2-2 6-2-6-6-2 6-2z' fill='%23ffff66'/%3E%3Cpath d='M20 100 l1.5 4 4 1.5-4 1.5-1.5 4-1.5-4-4-1.5 4-1.5z' fill='%23ff66ff'/%3E%3C/svg%3E"); }
+[data-theme="webcore"] .bg-b { background: linear-gradient(90deg, transparent 0 calc(100% - 26px), rgba(0,255,255,.12) 0); }
+[data-theme="webcore"] .btn { box-shadow: inset -2px -2px 0 #404040, inset 2px 2px 0 #fff; border: 1px solid #000; }
+[data-theme="webcore"] .btn:active { box-shadow: inset 2px 2px 0 #404040, inset -2px -2px 0 #fff; }
+[data-theme="webcore"] .topbar, [data-theme="webcore"] .drawer, [data-theme="webcore"] .player, [data-theme="webcore"] .crumbs { color: #000; --fg: #000; --muted: #333; --text-shadow-ui: none; }
+[data-theme="webcore"] .topbar::before { content: "★ WELCOME 2 MY READER ★"; position: absolute; left: 50%; top: -1px; transform: translate(-50%, -100%); font: 700 10px Verdana; color: #ffff66; letter-spacing: .2em; white-space: nowrap; animation: blink 1.2s steps(2) infinite; }
+[data-theme="webcore"] .ch-head h1 { color: #800080; }
+[data-theme="webcore"] .reader::after { content: "~*~ best viewed in 1024×768 ~*~"; display: block; text-align: center; font: 11px Verdana; color: #808080; margin-top: 2em; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* swatches for the picker */
+.sw[data-t="frutiger-aero"] { background: linear-gradient(#6fcbff, #dff6d8 60%, #7fcf4c); }
+.sw[data-t="frutiger-galaxy"] { background: radial-gradient(circle at 70% 30%, #c77dff, #2a1b6b 40%, #02020f); }
+.sw[data-t="alba-aero"] { background: linear-gradient(160deg, #fff, #e3ecf5, #f8f3ee); }
+.sw[data-t="musica-aero"] { background: linear-gradient(135deg, #ff4fa3, #ffd84a, #36d6c6, #2e7bff); }
+.sw[data-t="futurism-aero"] { background: linear-gradient(#d9e2ea, #f4f7fa 40%, #b9c6d2 60%, #00b8e6); }
+.sw[data-t="frutiger-evil"] { background: radial-gradient(circle at 40% 60%, #ff1f3d, #4a0008 30%, #050001 70%); }
+.sw[data-t="dark-aero"] { background: linear-gradient(160deg, #0a1a26, #0b2733 60%, #2fd1ff); }
+.sw[data-t="y2k-futurism"] { background: linear-gradient(135deg, #ff7ae0, #e0e6ff, #7a3cff, #00e0c0); }
+.sw[data-t="technozen"] { background: linear-gradient(#e9ece6, #cfd8d2); box-shadow: inset 0 -8px 0 #3f8f7a; }
+.sw[data-t="helvetica-aqua-aero"] { background: repeating-linear-gradient(0deg, #f2f2f2 0 2px, #e0e0e0 2px 4px); box-shadow: inset 0 -14px 0 #2a7fff; }
+.sw[data-t="frutiger-aurora"] { background: linear-gradient(170deg, #020a1a, #3dffb0 50%, #9b6bff 70%, #06213a); }
+.sw[data-t="dreamcore"] { background: linear-gradient(#ffd9ec, #e8dcff, #d6f0ff); }
+.sw[data-t="webcore"] { background: #000040 repeating-linear-gradient(90deg, #ff00ff 0 6px, #00ffff 6px 12px, #ffff66 12px 18px) bottom/100% 8px no-repeat; }

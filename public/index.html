@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" data-theme="frutiger-aero">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Aero Reader · CHYOA</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="themes.css">
+  <script src="boot.js"></script>
+</head>
+<body>
+  <div class="bg-layer" aria-hidden="true"><div class="bg-a"></div><div class="bg-b"></div><div class="bg-c"></div></div>
+  <div id="progress" class="progress" aria-hidden="true"><div></div></div>
+
+  <header class="topbar glass">
+    <div class="brand" title="Aero Reader"><span class="orb"></span><span class="brand-text">Aero Reader</span></div>
+    <form id="urlForm" class="urlform" autocomplete="off">
+      <input id="urlInput" type="url" inputmode="url" placeholder="Paste a CHYOA story or chapter URL…  (press / to focus)" aria-label="CHYOA URL" required>
+      <button class="btn primary" type="submit">Read</button>
+    </form>
+    <nav class="tools">
+      <button class="btn icon" id="btnBack" title="Back along your path (←)" aria-label="Back">◀</button>
+      <button class="btn" id="btnLibrary" title="Encrypted library (L)">🔒 Library</button>
+      <button class="btn icon" id="btnLock" title="Lock library now" aria-label="Lock">⏻</button>
+      <button class="btn icon" id="btnSettings" title="Reading settings & themes (S)" aria-label="Settings">Aa</button>
+      <button class="btn icon" id="btnMusic" title="Music player (M)" aria-label="Music">♫</button>
+      <button class="btn icon" id="btnHelp" title="Keyboard shortcuts (?)" aria-label="Help">?</button>
+    </nav>
+  </header>
+
+  <nav id="crumbs" class="crumbs glass hidden" aria-label="Path taken"></nav>
+
+  <main id="main">
+    <section id="welcome" class="paper welcome">
+      <h1>Your branching stories, beautifully.</h1>
+      <p>Paste a <b>chyoa.com</b> story or chapter link above. The reader pulls the chapter, shows the choices at the end, and can prefetch the next branches so turning the page is instant.</p>
+      <ul class="feature-list">
+        <li><b>Encrypted library</b> — chapters you read are saved in this browser with AES‑256‑GCM, key derived from your passphrase (PBKDF2, 600k iterations).</li>
+        <li><b>13 themes</b> — from Frutiger Aero to Webcore. Press <kbd>T</kbd> to cycle.</li>
+        <li><b>Music</b> — add your own audio files or a stream URL; the player keeps going between chapters.</li>
+      </ul>
+      <p class="muted small">Tip: number keys <kbd>1</kbd>–<kbd>9</kbd> pick a choice, <kbd>←</kbd> goes back.</p>
+    </section>
+
+    <article id="reader" class="paper reader hidden" aria-live="polite">
+      <header class="ch-head">
+        <div class="ch-story"><a id="chStory" href="#" class="story-link"></a></div>
+        <p id="chArrived" class="ch-arrived"></p>
+        <h1 id="chTitle"></h1>
+        <p id="chMeta" class="ch-meta"></p>
+      </header>
+      <div id="chNotes" class="notes"></div>
+      <div id="chBody" class="ch-body"></div>
+      <section id="choices" class="choices">
+        <h2 id="chQuestion"></h2>
+        <ol id="choiceList"></ol>
+        <div id="followBox" class="follow hidden"></div>
+        <div class="ch-actions">
+          <button class="btn" id="btnParent" title="Load the parent chapter on CHYOA">↑ Parent chapter</button>
+          <button class="btn" id="btnSave" title="Save this chapter to the encrypted library">⤓ Save</button>
+          <a class="btn" id="btnOrig" target="_blank" rel="noopener noreferrer">Open on CHYOA ↗</a>
+        </div>
+      </section>
+    </article>
+
+    <div id="loading" class="loading hidden"><div class="spinner"></div><span>Fetching from CHYOA…</span></div>
+    <div id="error" class="paper errorbox hidden" role="alert"></div>
+  </main>
+
+  <!-- Settings drawer -->
+  <aside id="settings" class="drawer glass hidden" aria-label="Settings">
+    <div class="drawer-head"><h2>Reading &amp; Themes</h2><button class="btn icon close" data-close aria-label="Close">✕</button></div>
+    <div class="field"><label>Text size <output id="fsOut"></output></label><input id="fsRange" type="range" min="14" max="30" step="1"></div>
+    <div class="field"><label>Line width <output id="lwOut"></output></label><input id="lwRange" type="range" min="40" max="100" step="2"></div>
+    <div class="field"><label>Line spacing <output id="lhOut"></output></label><input id="lhRange" type="range" min="1.3" max="2.2" step="0.05"></div>
+    <div class="field"><label for="fontSel">Reading font</label>
+      <select id="fontSel"><option value="theme">Theme default</option><option value="serif">Serif (Georgia)</option><option value="sans">Sans (system)</option><option value="humanist">Humanist (Segoe/Frutiger-like)</option><option value="mono">Monospace</option><option value="dyslexic">Extra-legible (Verdana)</option></select></div>
+    <div class="field check"><label><input type="checkbox" id="optPrefetch"> Prefetch next choices (max 6, ~1.5 s apart)</label></div>
+    <div class="field check"><label><input type="checkbox" id="optFollow"> Follow path: auto-continue when a chapter has only one choice</label></div>
+    <div class="field check"><label><input type="checkbox" id="optAutosave"> Auto-save chapters I read (when library is unlocked)</label></div>
+    <div class="field"><label for="autolockSel">Auto-lock library after inactivity</label>
+      <select id="autolockSel"><option value="0">Never</option><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="60">1 hour</option></select></div>
+    <h3>Theme</h3>
+    <div id="themeGrid" class="theme-grid"></div>
+  </aside>
+
+  <!-- Library drawer -->
+  <aside id="library" class="drawer glass wide hidden" aria-label="Encrypted library">
+    <div class="drawer-head"><h2>🔐 Encrypted Library</h2><button class="btn icon close" data-close aria-label="Close">✕</button></div>
+    <div id="libLocked" class="lib-locked">
+      <p id="libLockedMsg"></p>
+      <form id="unlockForm" autocomplete="off">
+        <input type="password" id="passInput" placeholder="Passphrase" autocomplete="current-password" required minlength="1">
+        <input type="password" id="passInput2" placeholder="Repeat new passphrase" class="hidden" autocomplete="new-password">
+        <button class="btn primary" type="submit" id="unlockBtn">Unlock</button>
+      </form>
+      <p id="libErr" class="err"></p>
+      <p class="muted small">Your passphrase never leaves this browser and cannot be recovered. PBKDF2‑SHA256 · 600,000 iterations · AES‑256‑GCM.</p>
+    </div>
+    <div id="libOpen" class="lib-open hidden">
+      <div class="lib-tools">
+        <input id="libSearch" type="search" placeholder="Filter saved chapters…">
+        <button class="btn" id="btnExport" title="Download encrypted backup (.json)">Export</button>
+        <label class="btn" title="Import an encrypted backup">Import<input id="importFile" type="file" accept=".json,application/json" hidden></label>
+        <button class="btn" id="btnLock2">Lock</button>
+      </div>
+      <p id="libStats" class="muted small"></p>
+      <div id="libList" class="lib-list"></div>
+      <details class="danger"><summary>Danger zone</summary><button class="btn" id="btnWipe">Erase entire library</button></details>
+    </div>
+  </aside>
+
+  <!-- Help -->
+  <aside id="help" class="drawer glass hidden" aria-label="Shortcuts">
+    <div class="drawer-head"><h2>Keyboard</h2><button class="btn icon close" data-close aria-label="Close">✕</button></div>
+    <table class="keys">
+      <tr><td><kbd>1</kbd>–<kbd>9</kbd></td><td>Pick choice</td></tr>
+      <tr><td><kbd>→</kbd></td><td>First / only choice</td></tr>
+      <tr><td><kbd>←</kbd></td><td>Back along path</td></tr>
+      <tr><td><kbd>J</kbd> / <kbd>K</kbd>, <kbd>Space</kbd></td><td>Scroll</td></tr>
+      <tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Text size</td></tr>
+      <tr><td><kbd>[</kbd> / <kbd>]</kbd></td><td>Line width</td></tr>
+      <tr><td><kbd>T</kbd> / <kbd>Shift+T</kbd></td><td>Next / previous theme</td></tr>
+      <tr><td><kbd>L</kbd></td><td>Library</td></tr>
+      <tr><td><kbd>S</kbd></td><td>Settings</td></tr>
+      <tr><td><kbd>M</kbd> / <kbd>P</kbd></td><td>Music panel / play–pause</td></tr>
+      <tr><td><kbd>/</kbd></td><td>Focus URL box</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Close panels</td></tr>
+    </table>
+  </aside>
+
+  <!-- Music player -->
+  <section id="player" class="player glass collapsed" aria-label="Music player">
+    <div class="pl-main">
+      <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="pl-info"><div id="plTitle" class="pl-title">No music yet</div><div id="plTime" class="pl-time">Add files or a stream URL</div></div>
+      <div class="pl-ctrls">
+        <button class="btn icon" id="plPrev" aria-label="Previous track">⏮</button>
+        <button class="btn icon primary" id="plPlay" aria-label="Play">▶</button>
+        <button class="btn icon" id="plNext" aria-label="Next track">⏭</button>
+        <button class="btn icon" id="plToggle" aria-label="Expand player" title="Playlist">☰</button>
+      </div>
+    </div>
+    <input id="plSeek" class="seek" type="range" min="0" max="1000" value="0" aria-label="Seek">
+    <div class="pl-extra">
+      <div class="pl-row">
+        <button class="btn small" id="plShuffle" aria-pressed="false" title="Shuffle">🔀 Shuffle</button>
+        <button class="btn small" id="plRepeat" title="Repeat mode">🔁 Repeat: all</button>
+        <label class="vol">🔊<input id="plVol" type="range" min="0" max="1" step="0.01" aria-label="Volume"></label>
+      </div>
+      <div class="pl-row">
+        <label class="btn small">＋ Audio files<input id="plFiles" type="file" accept="audio/*,.mp3,.ogg,.oga,.opus,.flac,.wav,.m4a,.aac,.webm" multiple hidden></label>
+        <label class="small remember"><input type="checkbox" id="plRemember" checked> remember files on this device</label>
+      </div>
+      <form id="plUrlForm" class="pl-row">
+        <input id="plUrl" type="url" placeholder="Direct audio / internet-radio stream URL (mp3, ogg, aac…)">
+        <button class="btn small" type="submit">Add</button>
+      </form>
+      <ol id="plList" class="pl-list"></ol>
+    </div>
+    <audio id="audio" preload="metadata"></audio>
+  </section>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

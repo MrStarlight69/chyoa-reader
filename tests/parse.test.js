@@ -1,0 +1,23 @@
+// Offline parser test against a synthetic page that mirrors CHYOA's Oct-2026 markup.
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { parseChapter } = require('../lib/parse');
+const html = fs.readFileSync(path.join(__dirname, 'fixture-synthetic.html'), 'utf8');
+const c = parseChapter(html, 'https://chyoa.com/chapter/Second-Door.22');
+assert.strictEqual(c.chapterTitle, 'Second Door');
+assert.strictEqual(c.storyTitle, 'Test Story');
+assert.strictEqual(c.arrivedVia, 'Which door?');
+assert.strictEqual(c.author, 'tester');
+assert.strictEqual(c.chapterNumber, 2);
+assert.strictEqual(c.question, 'What now?');
+assert.deepStrictEqual(c.choices.map((x) => x.title), ['Go left', 'Go right']);
+assert.strictEqual(c.previousUrl, 'https://chyoa.com/chapter/Previous-Chapter.11');
+assert.strictEqual(c.storyUrl, 'https://chyoa.com/story/Test-Story.1');
+assert.ok(!/script|onclick|javascript:/i.test(c.html), 'sanitized');
+assert.ok(c.html.includes('Nested &amp; fine'), 'nested divs kept');
+assert.ok(c.notes.includes('images-login'));
+assert.throws(() => parseChapter('<title>Chapter unavailable &mdash; CHYOA</title><h1>This branch was never written</h1>', 'https://chyoa.com/chapter/x.1'), /unavailable/);
+assert.throws(() => parseChapter('<html><body>nothing</body></html>', 'https://chyoa.com/chapter/x.1'), (e) => e.code === 'MARKUP_CHANGED');
+assert.throws(() => parseChapter('<form><input name="password"></form>', 'https://chyoa.com/auth/login'), (e) => e.code === 'LOGIN_REQUIRED');
+console.log('parser tests passed');
