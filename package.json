@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/parse.test.js && node tests/proxy.test.js",
+    "test": "node tests/parse.test.js && node tests/proxy.test.js && node tests/cipher.test.js",
     "e2e": "node tests/e2e.js"
   },
   "engines": {
