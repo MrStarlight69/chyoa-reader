@@ -64,7 +64,7 @@
         <ol id="choiceList"></ol>
         <div id="followBox" class="follow hidden"></div>
         <div class="ch-actions">
-          <button class="btn" id="btnParent" title="Load the parent chapter on CHYOA">↑ Parent chapter</button>
+          <button class="btn" id="btnReset" title="Clear this reading session and return to the start screen">Reset</button>
           <button class="btn" id="btnSave" title="Save this chapter to the encrypted library">⤓ Save</button>
           <a class="btn" id="btnOrig" target="_blank" rel="noopener noreferrer">Open on CHYOA ↗</a>
         </div>
@@ -199,6 +199,7 @@
       </div>
       <div class="field check"><label><input type="checkbox" id="ciphShow" checked> Show this chapter encrypted</label></div>
       <div class="field check"><label><input type="checkbox" id="ciphChoices"> Encrypt choice labels too (the links still open the next chapter)</label></div>
+      <div class="ch-actions"><button class="btn primary" type="button" id="ciphEncrypt">Encrypt</button></div>
       <div id="ciphPreview" class="cipher-preview ch-body" aria-label="Encrypted chapter"></div>
       <textarea id="ciphPayload" class="cipher-raw hidden" readonly spellcheck="false" aria-label="Encrypted text"></textarea>
       <p id="ciphCount" class="muted small"></p>

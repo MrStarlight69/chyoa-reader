@@ -87,6 +87,9 @@ function start() {
   await page.waitForFunction(() => /Decrypted/.test(document.getElementById('ciphDecStatus').textContent));
   const preview = await page.$eval('#ciphDecPreview', (e) => e.innerText.replace(/\s+/g, ' '));
   ok(preview.includes(snippet), 'decrypt preview shows the original paragraph');
+  const readable = await page.$eval('#chBody', (e) => e.innerText.replace(/\s+/g, ' '));
+  ok(readable.includes(snippet), 'decrypt returns the chapter on the main page to readable text');
+  await page.evaluate(() => window.__reader.setShowEncrypted(true));
   await page.click('#ciphDecRead');
   await page.waitForSelector('#readMode:not(.hidden) [data-i]');
   await page.click('#readPaper [data-i]');

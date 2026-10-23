@@ -20,10 +20,27 @@ const ERR = {
   FMTCHECK: 'Could not read that formatted cipher text.',
 };
 
+const PLAIN_SID = 'plain-english';
+let repairedPlain = false;
+
+function plainEnglishCipher() {
+  return { sid: PLAIN_SID, name: 'Plain English', key: C().ALPHA, created: '2026-01-01T00:00:00.000Z' };
+}
+function ensurePlainEnglish(state) {
+  const found = state.ciphers.find((c) => c.sid === PLAIN_SID);
+  if (!found) {
+    state.ciphers.push(plainEnglishCipher());
+    return true;
+  }
+  if (found.name === 'Plain English' && found.key === C().ALPHA) return false;
+  found.name = 'Plain English';
+  found.key = C().ALPHA;
+  return true;
+}
 function defaultState() {
   const key = C().juniperKey();
   return {
-    ciphers: [{ sid: 'juniper', name: 'Juniper', key, created: '2026-01-01T00:00:00.000Z' }],
+    ciphers: [{ sid: 'juniper', name: 'Juniper', key, created: '2026-01-01T00:00:00.000Z' }, plainEnglishCipher()],
     selected: 'juniper',
     showEncrypted: true,
     encryptChoices: false,
@@ -31,12 +48,14 @@ function defaultState() {
   };
 }
 function loadState() {
+  repairedPlain = false;
   try {
     const s = JSON.parse(localStorage.getItem(STORE) || '');
     if (s && Array.isArray(s.ciphers) && s.ciphers.length && s.ciphers.every((c) => c && C().isValidKey(c.key) && c.sid)) {
       s.showEncrypted = s.showEncrypted !== false;
       s.encryptChoices = !!s.encryptChoices;
       s.bookmarks = s.bookmarks && typeof s.bookmarks === 'object' ? s.bookmarks : {};
+      repairedPlain = ensurePlainEnglish(s);
       if (!s.ciphers.some((c) => c.sid === s.selected)) s.selected = s.ciphers[0].sid;
       return s;
     }
@@ -97,6 +116,7 @@ export function createCipher({ toast, onChange, vault }) {
   let read = null;
 
   const persist = () => localStorage.setItem(STORE, JSON.stringify(state));
+  if (repairedPlain) persist();
   const selected = () => state.ciphers.find((c) => c.sid === state.selected) || state.ciphers[0];
   const dirty = () => {
     const c = selected();
@@ -255,7 +275,11 @@ export function createCipher({ toast, onChange, vault }) {
 
   function present(ch) {
     const plainArrived = ch.arrivedVia ? `“${ch.arrivedVia}”` : (ch.description || '');
-    if (ch.ciphered || !state.showEncrypted) {
+    // Identity (Plain English) must show the original chapter HTML. Running it
+    // through the cipher escapes non-keyboard characters, so the page would not
+    // match the text as written.
+    const identity = !ch.ciphered && selected().key === C().ALPHA;
+    if (ch.ciphered || !state.showEncrypted || identity) {
       return { html: ch.html || '', arrived: plainArrived, question: ch.question || '', titles: (ch.choices || []).map((c) => c.title) };
     }
     const key = selected().key;
@@ -365,7 +389,8 @@ export function createCipher({ toast, onChange, vault }) {
     const ciphers = data.ciphers.filter((c) => c && C().isValidKey(c.key) && c.sid && c.name);
     if (!ciphers.length) throw new Error('That backup has no usable ciphers.');
     state.ciphers = ciphers;
-    state.selected = ciphers.some((c) => c.sid === data.selected) ? data.selected : ciphers[0].sid;
+    ensurePlainEnglish(state);
+    state.selected = state.ciphers.some((c) => c.sid === data.selected) ? data.selected : state.ciphers[0].sid;
     state.showEncrypted = data.showEncrypted !== false;
     state.encryptChoices = !!data.encryptChoices;
     state.bookmarks = data.bookmarks && typeof data.bookmarks === 'object' ? data.bookmarks : {};
@@ -378,11 +403,20 @@ export function createCipher({ toast, onChange, vault }) {
     refreshChapter();
   }
 
-  function showTab(name) {
+  function showTab(name, opts) {
     document.querySelectorAll('[data-cpanel]').forEach((p) => p.classList.toggle('hidden', p.dataset.cpanel !== name));
     document.querySelectorAll('[data-ctab]').forEach((b) => b.setAttribute('aria-selected', b.dataset.ctab === name ? 'true' : 'false'));
     if (name === 'saved') savedSummary();
     if (name === 'cipher') { buildGrid(); loadDraft(state.selected); }
+    if (name === 'enc' && !(opts && opts.skipApply)) encryptChapter();
+  }
+
+  function encryptChapter() {
+    state.showEncrypted = true;
+    persist();
+    syncChecks();
+    onChange();
+    refreshChapter();
   }
 
   function decryptRaw(raw, key, opts) {
@@ -594,7 +628,7 @@ export function createCipher({ toast, onChange, vault }) {
   fillSelects();
   loadDraft(state.selected);
   syncChecks();
-  showTab('enc');
+  showTab('enc', { skipApply: true });
 
   document.querySelectorAll('[data-ctab]').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.ctab)));
   $('ciphEncSel').addEventListener('change', () => selectSid($('ciphEncSel').value));
@@ -616,6 +650,7 @@ export function createCipher({ toast, onChange, vault }) {
     const page = C().encryptedPage({ title: chapter.chapterTitle || chapter.storyTitle || 'Encrypted chapter', author: chapter.author || '', payload: payloadFor(chapter) });
     download(C().slugify(chapter.chapterTitle || 'chapter') + '.cipher.html', page, 'text/html;charset=utf-8');
   });
+  if ($('ciphEncrypt')) $('ciphEncrypt').addEventListener('click', encryptChapter);
   $('ciphRead').addEventListener('click', readEncrypted);
   $('ciphRaw').addEventListener('click', () => {
     const pre = $('ciphPreview'), raw = $('ciphPayload');
@@ -639,6 +674,10 @@ export function createCipher({ toast, onChange, vault }) {
       const plain = decryptRaw($('ciphDecText').value, key, { force });
       showDecrypted(plain);
       if ($('ciphDecWarn')) $('ciphDecWarn').classList.add('hidden');
+      state.showEncrypted = false;
+      persist();
+      syncChecks();
+      onChange();
     } catch (e) {
       if ((e.code || e.message) === 'FINGERPRINT' && !force) {
         setStatus('ciphDecStatus', errText(e), 'bad');
@@ -666,6 +705,7 @@ export function createCipher({ toast, onChange, vault }) {
   $('cipDel').addEventListener('click', () => {
     if (state.ciphers.length < 2) return toast('Keep at least one cipher');
     const c = selected();
+    if (c.sid === PLAIN_SID) return toast('Plain English is built in');
     if (!confirm(`Delete “${c.name}”?`)) return;
     state.ciphers = state.ciphers.filter((x) => x.sid !== c.sid);
     state.selected = state.ciphers[0].sid;
@@ -693,8 +733,13 @@ export function createCipher({ toast, onChange, vault }) {
     const key = draft.join('');
     if (!C().isValidKey(key)) return setStatus('cipStatus', 'Fill every box with one keyboard character before saving.', 'bad');
     const c = selected();
-    c.name = ($('cipName').value.trim() || 'Cipher').slice(0, 60);
-    c.key = key;
+    if (c.sid === PLAIN_SID) {
+      c.name = 'Plain English';
+      c.key = C().ALPHA;
+    } else {
+      c.name = ($('cipName').value.trim() || 'Cipher').slice(0, 60);
+      c.key = key;
+    }
     persist();
     fillSelects();
     loadDraft(c.sid);

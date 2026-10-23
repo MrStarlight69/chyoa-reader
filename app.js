@@ -22,6 +22,7 @@ let pos = -1;                 // index into path of the current chapter
 let current = null;
 let cipherApi = null;
 let prefetchToken = 0;
+let sessionGen = 0;
 let followTimer = null;
 let backend = 'static';   // 'server' when /api/health answers (node server.js); otherwise GitHub Pages
 let backendReady = Promise.resolve('static');
@@ -241,13 +242,16 @@ function showError(e, url) {
 async function getChapter(url) {
   url = ChyoaFetch.normalizeUrl(url);
   if (mem.has(url)) return mem.get(url);
+  const gen = sessionGen;
   const ch = await api(url);
+  if (gen !== sessionGen) return ch;
   mem.set(url, ch); if (ch.url !== url) mem.set(ch.url, ch);
   return ch;
 }
 
 // mode: 'push' (follow a choice), 'new' (fresh URL), 'jump' (to path index), 'parent'
 async function load(url, mode = 'push', opts = {}) {
+  const gen = sessionGen;
   cancelFollow();
   try { url = ChyoaFetch.normalizeUrl(url); }
   catch (e) { showError(e, url); return; }
@@ -259,6 +263,7 @@ async function load(url, mode = 'push', opts = {}) {
     catch (e) { $('loading').classList.add('hidden'); showError(e, url); return; }
     $('loading').classList.add('hidden');
   }
+  if (gen !== sessionGen) { $('loading').classList.add('hidden'); return; }
   mem.set(ch.url, ch);
   if (mode === 'new') { path = [{ url: ch.url, title: ch.chapterTitle }]; pos = 0; }
   else if (mode === 'push') { path = path.slice(0, pos + 1); path.push({ url: ch.url, title: ch.chapterTitle }); pos = path.length - 1; }
@@ -303,7 +308,6 @@ function render(ch) {
     li.appendChild(b); ol.appendChild(li);
     markChoice(c.url);
   });
-  $('btnParent').classList.toggle('hidden', !(ch.previousUrl || pos > 0));
   $('btnOrig').href = ch.url;
   $('btnSave').textContent = vault.isUnlocked() && vault.findByUrl(ch.url) ? '✓ Saved' : '⤓ Save';
   renderCrumbs();
@@ -453,10 +457,30 @@ $('btnSave').onclick = async () => {
   if (!vault.isUnlocked()) { openDrawer('library'); return toast('Unlock the library to save'); }
   await saveChapter(current); toast('Saved to encrypted library');
 };
-$('btnParent').onclick = () => {
-  if (pos > 0) return load(path[pos - 1].url, 'jump', { index: pos - 1 });
-  if (current?.previousUrl) load(current.previousUrl, 'parent');
-};
+function resetReading() {
+  if (!confirm('Reset this reading session and return to the start screen? Your library, ciphers, bookmarks, and music are kept.')) return;
+  sessionGen++;
+  prefetchToken++;
+  cancelFollow();
+  mem.clear();
+  visited.clear();
+  path = [];
+  pos = -1;
+  current = null;
+  $('urlInput').value = '';
+  $('loading').classList.add('hidden');
+  $('crumbs').innerHTML = '';
+  $('crumbs').classList.add('hidden');
+  if (cipherApi) { cipherApi.closeRead(); cipherApi.onChapter(null); }
+  closeDrawers();
+  showOnly('welcome');
+  document.title = 'Aero Reader · CHYOA';
+  history.replaceState(null, '', location.pathname);
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'instant' });
+  persistSession();
+}
+$('btnReset').onclick = resetReading;
 
 // links inside a chapter that point at other CHYOA chapters open in the reader
 $('chBody').addEventListener('click', (e) => {
