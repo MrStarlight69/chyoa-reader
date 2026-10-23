@@ -1,5 +1,6 @@
 import * as vault from './vault.js';
 import { initPlayer } from './player.js';
+import { createCipher } from './cipher-ui.js';
 
 const $ = (id) => document.getElementById(id);
 const THEMES = [
@@ -19,6 +20,7 @@ const visited = new Set();
 let path = [];                // [{url, title}]
 let pos = -1;                 // index into path of the current chapter
 let current = null;
+let cipherApi = null;
 let prefetchToken = 0;
 let followTimer = null;
 let backend = 'static';   // 'server' when /api/health answers (node server.js); otherwise GitHub Pages
@@ -266,7 +268,7 @@ async function load(url, mode = 'push', opts = {}) {
   render(ch);
   window.scrollTo({ top: 0, behavior: 'instant' });
   history.replaceState(null, '', `#${encodeURIComponent(ch.url)}`);
-  if (prefs.autosave && vault.isUnlocked()) vault.save(ch).then(() => {}, (e) => toast(e.message));
+  if (prefs.autosave && vault.isUnlocked()) saveChapter(ch).then(() => {}, (e) => toast(e.message));
   persistSession();
   if (prefs.prefetch) prefetchChoices(ch);
 }
@@ -277,16 +279,18 @@ function render(ch) {
   const story = $('chStory');
   story.textContent = ch.storyTitle || 'CHYOA';
   story.href = '#'; story.onclick = (e) => { e.preventDefault(); if (ch.storyUrl) load(ch.storyUrl, 'new'); };
-  $('chArrived').textContent = ch.arrivedVia ? `“${ch.arrivedVia}”` : (ch.description || '');
+  const view = cipherApi.present(ch);
+  $('chArrived').textContent = view.arrived;
   $('chTitle').textContent = ch.chapterTitle || 'Untitled';
   const mins = Math.max(1, Math.round((ch.words || 0) / 230));
-  $('chMeta').innerHTML = [ch.chapterNumber ? `Chapter ${ch.chapterNumber}` : null, ch.author ? `by <a href="${esc(ch.authorUrl)}" target="_blank" rel="noopener noreferrer">${esc(ch.author)}</a>` : null, `${(ch.words || 0).toLocaleString()} words · ~${mins} min`, ch.savedAt ? '🔒 from library' : null].filter(Boolean).join(' · ');
+  const badge = cipherApi.badge(ch);
+  $('chMeta').innerHTML = [ch.chapterNumber ? `Chapter ${ch.chapterNumber}` : null, ch.author ? `by <a href="${esc(ch.authorUrl)}" target="_blank" rel="noopener noreferrer">${esc(ch.author)}</a>` : null, `${(ch.words || 0).toLocaleString()} words · ~${mins} min`, badge ? esc(badge) : null, ch.savedAt ? '🔒 from library' : null].filter(Boolean).join(' · ');
   const notes = [];
   if ((ch.notes || []).includes('images-login')) notes.push('Some images in this chapter are only shown to logged-in CHYOA members, so they appear as placeholders here.');
   if ((ch.notes || []).includes('empty')) notes.push('This chapter appears to have no text.');
   $('chNotes').innerHTML = notes.map((n) => `<div class="note">${esc(n)}</div>`).join('');
-  $('chBody').innerHTML = ch.html; // allowlist-sanitized by the parser — and the local server's CSP blocks inline scripts anyway
-  $('chQuestion').textContent = ch.choices?.length ? (ch.question || 'What happens next?') : '';
+  $('chBody').innerHTML = view.html; // chapter HTML is allowlist-sanitized; ciphering only replaces text
+  $('chQuestion').textContent = ch.choices?.length ? (view.question || 'What happens next?') : '';
   const ol = $('choiceList'); ol.innerHTML = '';
   if (!ch.choices?.length) ol.innerHTML = '<li class="ending">— The End (no further chapters on this branch yet) —</li>';
   ch.choices?.forEach((c, i) => {
@@ -294,7 +298,7 @@ function render(ch) {
     const b = document.createElement('button');
     b.className = 'choice' + (visited.has(c.url) ? ' visited' : ''); b.type = 'button'; b.dataset.url = c.url;
     b.innerHTML = `<span class="num">${i < 9 ? i + 1 : '•'}</span><span class="t"></span><span class="st"></span>`;
-    b.querySelector('.t').textContent = c.title;
+    b.querySelector('.t').textContent = view.titles[i];
     b.onclick = () => load(c.url, 'push');
     li.appendChild(b); ol.appendChild(li);
     markChoice(c.url);
@@ -305,6 +309,7 @@ function render(ch) {
   renderCrumbs();
   document.title = `${ch.chapterTitle} · ${ch.storyTitle} — Aero Reader`;
   updateProgress();
+  cipherApi.onChapter(ch);
 }
 function markChoice(url) {
   const b = document.querySelector(`.choice[data-url="${CSS.escape(url)}"] .st`);
@@ -415,7 +420,7 @@ $('unlockForm').addEventListener('submit', async (e) => {
     if (has) { const r = await vault.unlock(p1); toast(`Unlocked · ${r.count} chapter(s)${r.bad ? ` · ${r.bad} unreadable` : ''}`); }
     else { await vault.create(p1); toast('Encrypted library created'); }
     $('passInput').value = $('passInput2').value = '';
-    if (current && prefs.autosave) vault.save(current).catch(() => {});
+    if (current && prefs.autosave) saveChapter(current).catch(() => {});
     if (!current) { const s = await vault.loadSession(); if (s?.path?.length) { path = s.path; pos = s.pos; load(path[pos].url, 'jump', { index: pos }); } }
   } catch (err) { $('libErr').textContent = err.message; }
   finally { $('unlockBtn').disabled = false; refreshLibrary(); }
@@ -440,10 +445,13 @@ $('importFile').addEventListener('change', async (e) => {
   refreshLibrary();
 });
 $('btnWipe').onclick = async () => { if (confirm('Erase the ENTIRE encrypted library on this device? This cannot be undone.')) { await vault.wipe(); toast('Library erased'); } };
+async function saveChapter(ch) {
+  return vault.save(cipherApi.libraryRecord(ch));
+}
 $('btnSave').onclick = async () => {
   if (!current) return;
   if (!vault.isUnlocked()) { openDrawer('library'); return toast('Unlock the library to save'); }
-  await vault.save(current); toast('Saved to encrypted library');
+  await saveChapter(current); toast('Saved to encrypted library');
 };
 $('btnParent').onclick = () => {
   if (pos > 0) return load(path[pos - 1].url, 'jump', { index: pos - 1 });
@@ -458,9 +466,10 @@ $('chBody').addEventListener('click', (e) => {
 
 // ---------- drawers / ui wiring ----------
 function closeDrawers() { document.querySelectorAll('.drawer').forEach((d) => d.classList.add('hidden')); }
-function openDrawer(id) { const d = $(id); const was = d.classList.contains('hidden'); closeDrawers(); if (was) d.classList.remove('hidden'); if (id === 'library' && was) { $('libErr').textContent = ''; if (!vault.isUnlocked()) $('passInput').focus(); refreshLibrary(); } }
+function openDrawer(id) { const d = $(id); const was = d.classList.contains('hidden'); closeDrawers(); if (was) d.classList.remove('hidden'); if (id === 'library' && was) { $('libErr').textContent = ''; if (!vault.isUnlocked()) $('passInput').focus(); refreshLibrary(); } if (id === 'cipher' && was && cipherApi) cipherApi.onOpen(); }
 document.querySelectorAll('[data-close]').forEach((b) => (b.onclick = closeDrawers));
 $('btnSettings').onclick = () => openDrawer('settings');
+$('btnCipher').onclick = () => openDrawer('cipher');
 $('btnLibrary').onclick = () => openDrawer('library');
 $('btnHelp').onclick = () => openDrawer('help');
 $('btnBack').onclick = () => goBack();
@@ -487,10 +496,11 @@ addEventListener('resize', updateProgress);
 ['pointerdown', 'keydown', 'scroll'].forEach((ev) => addEventListener(ev, () => { if (vault.isUnlocked()) bumpAutolock(); }, { passive: true }));
 
 addEventListener('keydown', (e) => {
+  if (cipherApi && cipherApi.consumeKey(e)) return;
   const tag = e.target.tagName;
-  if (/INPUT|TEXTAREA|SELECT/.test(tag) || e.metaKey || e.ctrlKey || e.altKey) { if (e.key === 'Escape') e.target.blur(); return; }
+  if (/INPUT|TEXTAREA|SELECT/.test(tag) || e.metaKey || e.ctrlKey || e.altKey) { if (e.key === 'Escape') { e.target.blur(); if (cipherApi) cipherApi.closeRead(); } return; }
   const k = e.key;
-  if (k === 'Escape') return closeDrawers();
+  if (k === 'Escape') { cipherApi.closeRead(); return closeDrawers(); }
   if (k === '/') { e.preventDefault(); return $('urlInput').focus(); }
   if (k === '?') return openDrawer('help');
   if (k === 't') return cycleTheme(1);
@@ -512,6 +522,7 @@ addEventListener('keydown', (e) => {
 });
 
 // ---------- boot ----------
+cipherApi = createCipher({ toast, onChange: () => { if (current) render(current); }, vault });
 buildThemeGrid();
 applyPrefs();
 refreshLibrary();
@@ -522,4 +533,17 @@ backendReady.then(() => {
   if (fromQuery || /chyoa\.com\//.test(fromHash)) { $('urlInput').value = fromQuery || fromHash; load(fromQuery || fromHash, 'new'); }
 });
 // test hooks (used by tests/e2e.js; harmless otherwise)
-window.__reader = { setTheme, THEMES, load, state: () => ({ path, pos, current, unlocked: vault.isUnlocked(), saved: vault.isUnlocked() ? vault.list().length : null, prefetched: [...mem.keys()] }) };
+window.__reader = {
+  setTheme, THEMES, load,
+  setShowEncrypted: (on) => cipherApi.setShow(on),
+  setEncryptChoices: (on) => cipherApi.setChoices(on),
+  useCaesar: (n) => cipherApi.useCaesar(n),
+  useJuniper: () => cipherApi.useJuniper(),
+  storyPlain: () => cipherApi.storyPlain(current),
+  payload: () => cipherApi.payloadFor(current),
+  decrypt: (text, key) => cipherApi.decryptText(text, key || cipherApi.key()),
+  encryptedHtml: () => cipherApi.encryptedHtml(current),
+  fp: () => cipherApi.fp(),
+  savedHtml: () => (vault.isUnlocked() && current ? (vault.findByUrl(current.url) || {}).html : null),
+  state: () => ({ path, pos, current, unlocked: vault.isUnlocked(), saved: vault.isUnlocked() ? vault.list().length : null, prefetched: [...mem.keys()] }),
+};

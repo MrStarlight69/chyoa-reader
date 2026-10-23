@@ -26,6 +26,7 @@
     <nav class="tools">
       <button class="btn icon" id="btnBack" title="Back along your path (←)" aria-label="Back">◀</button>
       <button class="btn" id="btnLibrary" title="Encrypted library (L)">🔒 Library</button>
+      <button class="btn" id="btnCipher" title="Story cipher">Cipher</button>
       <button class="btn icon" id="btnLock" title="Lock library now" aria-label="Lock">⏻</button>
       <button class="btn icon" id="btnSettings" title="Reading settings & themes (S)" aria-label="Settings">Aa</button>
       <button class="btn icon" id="btnMusic" title="Music player (M)" aria-label="Music">♫</button>
@@ -40,7 +41,8 @@
       <h1>Your branching stories, beautifully.</h1>
       <p>Paste a <b>chyoa.com</b> story or chapter link above. The reader shows the chapter and the choices at the end, and can prefetch the next branches so turning the page is instant.</p>
       <ul class="feature-list">
-        <li><b>Encrypted library</b> — chapters you read are saved in this browser with AES‑256‑GCM, key derived from your passphrase (PBKDF2, 600k iterations).</li>
+        <li><b>Story cipher</b> — chapter text is scrambled in the browser with a substitution cipher. Only someone with the cipher key can read it. Open <b>Cipher</b> to encrypt, decrypt, and share that key.</li>
+        <li><b>Encrypted library</b> — saved chapters are stored ciphered, then locked again with AES‑256‑GCM. The key comes from your passphrase (PBKDF2, 600k iterations).</li>
         <li><b>13 themes</b> — from Frutiger Aero to Webcore. Press <kbd>T</kbd> to cycle.</li>
         <li><b>Music</b> — add your own audio files or a stream URL; the player keeps going between chapters.</li>
       </ul>
@@ -135,6 +137,7 @@
       <tr><td><kbd>[</kbd> / <kbd>]</kbd></td><td>Line width</td></tr>
       <tr><td><kbd>T</kbd> / <kbd>Shift+T</kbd></td><td>Next / previous theme</td></tr>
       <tr><td><kbd>L</kbd></td><td>Library</td></tr>
+      <tr><td>Cipher</td><td>Open the cipher panel</td></tr>
       <tr><td><kbd>S</kbd></td><td>Settings</td></tr>
       <tr><td><kbd>M</kbd> / <kbd>P</kbd></td><td>Music panel / play–pause</td></tr>
       <tr><td><kbd>/</kbd></td><td>Focus URL box</td></tr>
@@ -175,8 +178,172 @@
   </section>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <aside id="cipher" class="drawer glass xwide hidden" aria-label="Story cipher">
+    <div class="drawer-head"><h2>Story cipher</h2><button class="btn icon close" data-close aria-label="Close">✕</button></div>
+    <p class="muted small">Same substitution cipher as the AO3 fic encryptor. The cipher key is what you share. It is not strong encryption: it keeps the story from casual eyes. Your library passphrase is a separate lock.</p>
+    <div class="ctabs" role="tablist">
+      <button class="btn small" type="button" data-ctab="enc" role="tab" aria-selected="true">Encrypt</button>
+      <button class="btn small" type="button" data-ctab="dec" role="tab" aria-selected="false">Decrypt</button>
+      <button class="btn small" type="button" data-ctab="cipher" role="tab" aria-selected="false">Cipher</button>
+      <button class="btn small" type="button" data-ctab="saved" role="tab" aria-selected="false">Saved</button>
+      <button class="btn small" type="button" data-ctab="settings" role="tab" aria-selected="false">Settings</button>
+    </div>
+
+    <section data-cpanel="enc" role="tabpanel">
+      <p id="ciphHead" class="cipher-title">No chapter loaded yet</p>
+      <div class="cipher-row">
+        <label for="ciphEncSel">Cipher</label>
+        <select id="ciphEncSel" aria-label="Cipher for this chapter"></select>
+        <span class="badge">ID <b id="ciphEncFp"></b></span>
+      </div>
+      <div class="field check"><label><input type="checkbox" id="ciphShow" checked> Show this chapter encrypted</label></div>
+      <div class="field check"><label><input type="checkbox" id="ciphChoices"> Encrypt choice labels too (the links still open the next chapter)</label></div>
+      <div id="ciphPreview" class="cipher-preview ch-body" aria-label="Encrypted chapter"></div>
+      <textarea id="ciphPayload" class="cipher-raw hidden" readonly spellcheck="false" aria-label="Encrypted text"></textarea>
+      <p id="ciphCount" class="muted small"></p>
+      <div class="ch-actions">
+        <button class="btn" type="button" id="ciphCopy">Copy</button>
+        <button class="btn" type="button" id="ciphTxt">Download .txt</button>
+        <button class="btn" type="button" id="ciphHtml">Download .html</button>
+        <button class="btn" type="button" id="ciphRaw" aria-pressed="false">Show raw text</button>
+        <button class="btn primary" type="button" id="ciphRead">Read</button>
+      </div>
+      <p class="muted small">Copy and Download give the exact text needed to decrypt. The title on the chapter page is not part of that text. Send the cipher key from the Cipher tab separately.</p>
+    </section>
+
+    <section data-cpanel="dec" class="hidden" role="tabpanel">
+      <label for="ciphDecText">Encrypted text</label>
+      <textarea id="ciphDecText" class="cipher-raw" spellcheck="false" placeholder="Paste the encrypted text (first line starts with AO3SUB$) or upload a .txt / .html file"></textarea>
+      <div class="ch-actions">
+        <label class="btn">Upload file<input id="ciphDecFile" type="file" accept=".txt,.html,.htm,text/plain,text/html" hidden></label>
+      </div>
+      <div class="cipher-row">
+        <label for="ciphDecSel">Cipher</label>
+        <select id="ciphDecSel" aria-label="Cipher to decrypt with"></select>
+        <span class="badge">ID <b id="ciphDecFp"></b></span>
+      </div>
+      <div class="cipher-row">
+        <input id="ciphDecKey" type="text" class="mono" spellcheck="false" autocomplete="off" placeholder="…or paste a cipher key (AO3CIPHER$1$…$)">
+        <button class="btn small" type="button" id="ciphDecSaveKey">Save this cipher</button>
+      </div>
+      <div class="ch-actions"><button class="btn primary" type="button" id="ciphDecBtn">Decrypt</button></div>
+      <p id="ciphDecStatus" class="cipher-status" role="status"></p>
+      <div id="ciphDecWarn" class="hidden">
+        <button class="btn small" type="button" id="ciphDecForce">Try anyway</button>
+      </div>
+      <div id="ciphDecOut" class="hidden">
+        <div id="ciphDecPreview" class="cipher-preview ch-body"></div>
+        <div class="ch-actions">
+          <button class="btn" type="button" id="ciphDecTxt">Download .txt</button>
+          <button class="btn" type="button" id="ciphDecHtml">Download .html</button>
+          <button class="btn primary" type="button" id="ciphDecRead">Reading mode</button>
+        </div>
+      </div>
+    </section>
+
+    <section data-cpanel="cipher" class="hidden" role="tabpanel">
+      <div class="cipher-row">
+        <select id="cipSel" aria-label="Saved ciphers"></select>
+        <button class="btn small" type="button" id="cipNew">+ New</button>
+        <button class="btn small" type="button" id="cipDup">Duplicate</button>
+        <button class="btn small" type="button" id="cipDel">Delete</button>
+      </div>
+      <label for="cipName">Name</label>
+      <div class="cipher-row">
+        <input id="cipName" type="text" maxlength="60" placeholder="Cipher name">
+        <span class="badge">ID <b id="cipFp"></b></span>
+      </div>
+      <h3>Quick setups</h3>
+      <p class="muted small">Each one replaces the table below. Nothing is saved until you press Save. The chapter uses the saved cipher.</p>
+      <div class="presets">
+        <button class="btn small" type="button" id="preJuniper">Juniper</button>
+        <button class="btn small" type="button" id="preShuffle">Random shuffle</button>
+        <span class="preset"><button class="btn small" type="button" id="preCaesar">Caesar shift</button><input id="cipShift" type="number" value="3" step="1" aria-label="Shift amount"></span>
+        <button class="btn small" type="button" id="preReverse">Reverse (Atbash)</button>
+        <span class="preset"><button class="btn small" type="button" id="preKeyword">Keyword</button><input id="cipKeyword" type="text" placeholder="e.g. lighthouse" aria-label="Keyword"></span>
+        <button class="btn small" type="button" id="preIdentity">Reset</button>
+        <span class="preset"><input id="swapA" type="text" maxlength="1" class="swap" aria-label="First character"><span>↔</span><input id="swapB" type="text" maxlength="1" class="swap" aria-label="Second character"><button class="btn small" type="button" id="cipSwap">Swap</button></span>
+      </div>
+      <h3>Substitution table</h3>
+      <p class="muted small">Top: the original character. Box: what it turns into. ␣ is a space. You can reuse an output; decrypting then gives back the first character, with lowercase letters first.</p>
+      <div class="legend"><span class="l-self">maps to itself</span><span class="l-dup">shared output</span><span class="l-empty">empty</span></div>
+      <div id="cgrid" class="cgrid" aria-label="Substitution table"></div>
+      <p id="cipStatus" class="cipher-status" role="status"></p>
+      <div class="ch-actions">
+        <button class="btn primary" type="button" id="cipSave">Save</button>
+        <button class="btn" type="button" id="cipRevert">Revert</button>
+        <span id="cipDirty" class="muted small"></span>
+      </div>
+      <h3>Share or back up</h3>
+      <label for="cipKeyOut">Cipher key for the saved version (send this to whoever should decrypt)</label>
+      <div class="cipher-row">
+        <input id="cipKeyOut" type="text" class="mono" readonly spellcheck="false">
+        <button class="btn small" type="button" id="cipCopy">Copy</button>
+      </div>
+      <div class="ch-actions">
+        <button class="btn small" type="button" id="cipExport">Export .json</button>
+        <button class="btn small" type="button" id="cipExportAll">Export all ciphers</button>
+        <label class="btn small">Import .json<input id="cipImportFile" type="file" accept=".json,application/json,text/plain" multiple hidden></label>
+      </div>
+      <div id="ciphDrop" class="dropzone" tabindex="0">Drop cipher .json files here</div>
+      <details>
+        <summary>Paste cipher .json instead</summary>
+        <textarea id="cipJsonIn" class="cipher-raw" spellcheck="false" placeholder='{"format":"ao3-cipher", …}'></textarea>
+        <button class="btn small" type="button" id="cipJsonImport">Import pasted JSON</button>
+      </details>
+      <label for="cipKeyIn">Import a cipher key</label>
+      <div class="cipher-row">
+        <input id="cipKeyIn" type="text" class="mono" spellcheck="false" autocomplete="off" placeholder="AO3CIPHER$1$…$">
+        <button class="btn small" type="button" id="cipImportKey">Import as new</button>
+      </div>
+      <p id="cipImportMsg" class="cipher-status" role="status"></p>
+    </section>
+
+    <section data-cpanel="saved" class="hidden" role="tabpanel">
+      <h3>On this device</h3>
+      <ul id="ciphData" class="feature-list"></ul>
+      <div class="ch-actions">
+        <button class="btn" type="button" id="ciphBackup">Download backup (.json)</button>
+        <label class="btn">Restore from backup<input id="ciphRestoreFile" type="file" accept=".json,application/json,text/plain" hidden></label>
+        <button class="btn" type="button" id="ciphWipe">Wipe all saved data…</button>
+        <button class="btn primary hidden" type="button" id="ciphWipeYes">Yes, wipe everything</button>
+        <button class="btn hidden" type="button" id="ciphWipeNo">Cancel</button>
+      </div>
+      <details>
+        <summary>Paste backup text instead</summary>
+        <textarea id="ciphRestoreText" class="cipher-raw" spellcheck="false" placeholder='{"format":"chyoa-reader-cipher-backup", …}'></textarea>
+        <button class="btn small" type="button" id="ciphRestorePaste">Restore pasted backup</button>
+      </details>
+      <p id="ciphDataStatus" class="cipher-status" role="status"></p>
+      <p class="muted small">Wiping removes saved ciphers, bookmarks, the music playlist, and the encrypted library. Theme and reading settings stay. Export your ciphers first if you want to keep them.</p>
+    </section>
+
+    <section data-cpanel="settings" class="hidden" role="tabpanel">
+      <h3>Encryption</h3>
+      <div class="field check"><label><input type="checkbox" id="ciphShow2" checked> Show chapter text encrypted</label></div>
+      <div class="field check"><label><input type="checkbox" id="ciphChoices2"> Encrypt choice labels</label></div>
+      <p class="muted small">Titles, the path, and choice links stay usable. Only the story text is encrypted. With “Encrypt choice labels”, the question and the labels are scrambled too, and the next chapter still loads.</p>
+      <p class="muted small">Juniper, the built-in cipher, folds capitals into lowercase when you decrypt (A and a share an output). Caesar, Reverse, Keyword, and a random shuffle keep every character if each output is used once. Accents and emoji round-trip either way.</p>
+      <p class="muted small">Text size, themes, and the CORS proxy are in the Aa panel. A public proxy can see the chapter URL you request. It does not see the cipher key or your passphrase.</p>
+    </section>
+  </aside>
+
+  <div id="readMode" class="readmode hidden" role="dialog" aria-modal="true" aria-label="Reading mode">
+    <div class="readbar glass">
+      <button class="btn small" type="button" id="readExit">Exit reading (Esc)</button>
+      <strong id="readTitle"></strong>
+      <span id="readKind" class="badge"></span>
+      <button class="btn small" type="button" id="readBm">Bookmark</button>
+      <button class="btn small" type="button" id="readBmList">Bookmarks (<span id="readBmCount">0</span>)</button>
+    </div>
+    <div id="readBms" class="readbms glass hidden"></div>
+    <article class="paper reader"><div id="readPaper" class="ch-body"></div></article>
+  </div>
+
   <script src="lib/parse.js"></script>
   <script src="lib/fetch-proxy.js"></script>
+  <script src="lib/cipher.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>

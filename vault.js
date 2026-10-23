@@ -64,7 +64,8 @@ export async function save(ch) {
   const id = existing ? existing.id : crypto.randomUUID();
   const data = { url: ch.url, storyTitle: ch.storyTitle, storyUrl: ch.storyUrl, storyId: ch.storyId, chapterTitle: ch.chapterTitle, chapterNumber: ch.chapterNumber,
     author: ch.author, authorUrl: ch.authorUrl, arrivedVia: ch.arrivedVia, description: ch.description, html: ch.html, words: ch.words, question: ch.question,
-    choices: ch.choices, previousUrl: ch.previousUrl, isStoryPage: ch.isStoryPage, notes: ch.notes, fetchedAt: ch.fetchedAt, savedAt: new Date().toISOString() };
+    choices: ch.choices, previousUrl: ch.previousUrl, isStoryPage: ch.isStoryPage, notes: ch.notes, fetchedAt: ch.fetchedAt, savedAt: new Date().toISOString(),
+    cipherPayload: ch.cipherPayload || null, cipherFp: ch.cipherFp || null, cipherName: ch.cipherName || null, ciphered: !!ch.ciphered };
   await idb.put('chapters', { id, ...(await encrypt(key, data)) });
   items.set(id, data); emit();
   return id;
